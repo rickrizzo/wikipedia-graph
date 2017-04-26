@@ -8,6 +8,14 @@
 # Usage
 ################################################################################
 
+################################################################################
+# Variables
+################################################################################
+n ?= 10
+
+################################################################################
+# Commands
+################################################################################
 all: compile
 
 compile: clean
@@ -15,12 +23,15 @@ compile: clean
 
 clean:
 	rm -f main.out
+	rm -f parse.out
 
-n ?= 16
 run: compile
 	mpirun -n $(n) ./main.out
 
 download:
 	echo "WARNING ABOUT TO DOWNLOAD 13GBs"
-	# curl -O https://dumps.wikimedia.org/enwiki/20170101/enwiki-20170101-pages-meta-history1.xml-p000000010p000002245.7z
-	curl -o https://dumps.wikimedia.org/enwiki/20170101/enwiki-20170101-pages-articles-multistream.xml.bz2
+	curl -O https://dumps.wikimedia.org/enwiki/20170101/enwiki-20170101-pages-articles-multistream.xml.bz2
+
+parse:
+	g++ parseFiles.cpp -o parse.out
+	./parse.out
