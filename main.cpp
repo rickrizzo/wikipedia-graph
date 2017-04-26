@@ -4,6 +4,11 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
+#include <functional>
+#include <cctype>
+#include <locale>
+
 #include <mpi.h>
 
 #include "article.h"
@@ -14,6 +19,9 @@
 
 // Function Templates
 std::string getArticleNumber(int input);
+std::string &ltrim(std::string &s);
+std::string &rtrim(std::string &s);
+std::string &trim(std::string &s);
 
 int main(int argc, char *argv[]) {
 
@@ -33,7 +41,16 @@ int main(int argc, char *argv[]) {
     if(file.is_open()) {
       std::string line;
       while(getline(file, line)) {
-        std::cout << line << std::endl;
+        if(line.find("<title>") != std::string::npos) {
+          line = trim(line);
+          std::cout << line.substr(7, line.length() - 15) << std::endl;
+        }
+        if(line.find("<text>") != std::string::npos) {
+          // First line...
+          while(getline(file, line)) {
+            if(line.find("</text>") != std::string::npos) { break; }
+          }
+        }
       }
     }
     file.close();
@@ -48,4 +65,20 @@ std::string getArticleNumber(int input) {
   std::stringstream stream;
   stream << "article/article_" << input << ".txt";
   return stream.str();
+}
+
+std::string &ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))));
+    return s;
+}
+
+std::string &rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+    return s;
+}
+
+std::string &trim(std::string &s) {
+    return ltrim(rtrim(s));
 }
