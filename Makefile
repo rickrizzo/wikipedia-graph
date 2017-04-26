@@ -32,6 +32,8 @@ download:
 	echo "WARNING ABOUT TO DOWNLOAD 13GBs"
 	curl -O https://dumps.wikimedia.org/enwiki/20170101/enwiki-20170101-pages-articles-multistream.xml.bz2
 
-parse:
+parse: clean
+	rm -f article/article_*
+	rmdir article
 	g++ parseFiles.cpp -o parse.out
 	./parse.out

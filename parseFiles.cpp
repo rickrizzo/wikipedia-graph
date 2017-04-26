@@ -18,6 +18,9 @@ int main() {
   std::string line;
   std::ifstream file(FILEPATH);
 
+  // Make Directory
+  system("mkdir article");
+
   // Read File
   if(file.is_open()) {
     while(getline(file, line)) {
