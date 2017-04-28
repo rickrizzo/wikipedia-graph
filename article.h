@@ -1,3 +1,6 @@
+#ifndef _ARTICLE_H_
+#define _ARTICLE_H_
+
 #include <string>
 #include <vector>
 
@@ -7,7 +10,9 @@ private:
   std::vector<char*> links;
 public:
   void setTitle(std::string title);
-  void getTitle();
+  std::string getTitle();
   void addLinks(std::string link);
-  void getLinks();
+  std::vector<char*> getLinks();
 };
+
+#endif
