@@ -4,9 +4,6 @@
 #include <string>
 #include <vector>
 
-#ifndef ARTICLE_H
-#define ARTICLE_H
-
 struct StringA {
   char t[100];
 };

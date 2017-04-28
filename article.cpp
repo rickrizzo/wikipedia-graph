@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <cstring>
 #include "article.h"
 
 void Article::setTitle(std::string title) {

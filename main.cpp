@@ -126,6 +126,7 @@ void *read_files(void *thread_arg) {
         }
       }
     file.close();
+    }
   }
 
   unsigned int *return_val = new unsigned int;
