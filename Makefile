@@ -19,7 +19,7 @@ n ?= 10
 all: compile
 
 compile: clean
-	mpic++ -Wall main.cpp -o main.out
+	mpic++ -std=c++11 -Wall main.cpp -o main.out -lpthread
 
 clean:
 	rm -f main.out
