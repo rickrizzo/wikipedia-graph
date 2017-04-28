@@ -19,7 +19,7 @@ n ?= 10
 all: compile
 
 compile: clean
-	mpic++ -Wall main.cpp -o main.out
+	mpic++ -Wall main.cpp article.cpp -o main.out
 
 clean:
 	rm -f main.out
@@ -33,7 +33,6 @@ download:
 	curl -O https://dumps.wikimedia.org/enwiki/20170101/enwiki-20170101-pages-articles-multistream.xml.bz2
 
 parse: clean
-	rm -f article/article_*
-	rmdir article
-	g++ parseFiles.cpp -o parse.out
+	rm -rf article
+	g++ parseFiles.cpp -o parse.out -std=c++98
 	./parse.out
