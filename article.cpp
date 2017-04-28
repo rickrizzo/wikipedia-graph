@@ -3,17 +3,20 @@
 #include "article.h"
 
 void Article::setTitle(std::string title) {
-  this->title = title;
+
+  strcpy(this->title.t,title.c_str());
 }
 
 std::string Article::getTitle() {
-  return this->title;
+  return std::string(this->title.t);
 }
 
 void Article::addLinks(std::string link) {
-  links.push_back(link.c_str());
+  StringA l;
+  strcpy(l.t,link.c_str());
+  links.push_back(l);
 }
 
-std::vector<char*> Article::getLinks() {
+std::vector<StringA> Article::getLinks() {
   return links;
 }

@@ -64,6 +64,7 @@ int main(int argc, char *argv[]) {
     if (rc != 0) {
       std::cerr << "MAIN: Could not create thread" << std::endl;
       return 1;
+
     }
 
   }
@@ -109,7 +110,7 @@ void *read_files(void *thread_arg) {
   int lowerbound = (rank * (FILENUM / num_procs));
   int upperbound = (rank + 1) * FILENUM / num_procs;
   for(int i = lowerbound; i < upperbound; i++) {
-    std::ifstream file(getArticleNumber(i));
+    std::ifstream file(getArticleNumber(i).c_str());
     if(file.is_open()) {
       std::string line;
       while(getline(file, line)) {
@@ -124,7 +125,6 @@ void *read_files(void *thread_arg) {
           }
         }
       }
-    }
     file.close();
   }
 
