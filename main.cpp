@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
   int lowerbound = (rank * (FILENUM / num_procs));
   int upperbound = (rank + 1) * FILENUM / num_procs;
   for(int i = lowerbound; i < upperbound; i++) {
-    std::ifstream file(getArticleNumber(i));
+    std::ifstream file(getArticleNumber(i).c_str());
     if(file.is_open()) {
       std::string line;
       while(getline(file, line)) {

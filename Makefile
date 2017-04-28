@@ -36,3 +36,7 @@ parse: clean
 	rm -rf article
 	g++ parseFiles.cpp -o parse.out -std=c++98
 	./parse.out
+
+
+blue: clean
+	mpic++ -O5 main.cpp article.cpp -o main.out
