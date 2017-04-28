@@ -5,7 +5,7 @@
 #include <cstdlib>
 
 #define FILELIMIT 30
-#define FILEPATH "/Volumes/Triforce/Parallel/enwiki-20170101-pages-articles-multistream.xml"
+#define FILEPATH "enwiki-mini.xml"
 
 std::string getArticleFilename(int input) {
   std::stringstream stream;
@@ -21,6 +21,16 @@ int main() {
 
   // Make Directory
   system("mkdir -p article");
+  for( char m = '0'; m<='z'; ++m) {
+    for( char n = '0'; n<='z'; ++n) {
+      std::stringstream stream;
+      stream << "mkdir -p article/" << m << n;
+      // std::cout<< stream.str()<<std::endl;
+      system(stream.str().c_str());
+      if (n == '9') n = 'a';
+    }
+    if (m == '9') m = 'a';
+  }
 
   // Read File
   if(file.is_open()) {

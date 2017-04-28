@@ -15,7 +15,7 @@
 
 #define FILENUM 30
 #define FILESIZE 1000
-#define FILEPATH "/Volumes/Triforce/Parallel/enwiki-20170101-pages-articles-multistream.xml"
+#define FILEPATH "enwiki-mini.xml"
 
 // Function Templates
 std::string getArticleNumber(int input);
