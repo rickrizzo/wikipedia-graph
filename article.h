@@ -1,8 +1,8 @@
+#ifndef _ARTICLE_H_
+#define _ARTICLE_H_
+
 #include <string>
 #include <vector>
-
-#ifndef ARTICLE_H
-#define ARTICLE_H
 
 struct StringA {
   char t[100];
@@ -17,6 +17,7 @@ public:
   void setTitle(std::string title);
   std::string getTitle();
   void addLinks(std::string link);
+
   std::vector<StringA> getLinks();
 };
 
