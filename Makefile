@@ -16,28 +16,28 @@ n ?= 10
 ################################################################################
 # Commands
 ################################################################################
-all: compile
+all: compile run
 
-compile: clean
-	mpic++ -Wall main.cpp -o main.out article.cpp -o article.out -lpthread
+compile:
+	mpic++ -Wall main.cpp article.cpp -o main.out -lpthread
 
 clean:
 	rm -f main.out
 	rm -f parse.out
 
-run: compile
+run:
 	mpirun -n $(n) ./main.out
 
 download:
 	echo "WARNING ABOUT TO DOWNLOAD 13GBs"
 	curl -O https://dumps.wikimedia.org/enwiki/20170101/enwiki-20170101-pages-articles-multistream.xml.bz2
 
-parse: clean
-	rm -rf article
+parse:
+	# rm -rf article
 	g++ parseFiles.cpp -o parse.out -std=c++98
 	./parse.out
 
 
-blue: clean
+blue:
 	# mpic++ -O5 main.cpp article.cpp -o main.out
 	mpixlcxx -O5 main.cpp article.cpp -o main.out -qflag=w
