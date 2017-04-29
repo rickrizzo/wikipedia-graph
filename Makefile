@@ -39,4 +39,5 @@ parse: clean
 
 
 blue: clean
-	mpic++ -O5 main.cpp article.cpp -o main.out
+	# mpic++ -O5 main.cpp article.cpp -o main.out
+	mpixlcxx -O5 main.cpp article.cpp -o main.out -qflag=w
