@@ -25,11 +25,10 @@ int main() {
     for( char n = '0'; n<='z'; ++n) {
       std::stringstream stream;
       stream << "mkdir -p article/" << m << n;
-      // std::cout<< stream.str()<<std::endl;
       system(stream.str().c_str());
-      if (n == '9') n = 'a';
+      if (n == '9') { n = '`'; }
     }
-    if (m == '9') m = 'a';
+    if (m == '9') { m = '`'; }
   }
 
   // Read File
