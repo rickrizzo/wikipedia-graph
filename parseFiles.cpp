@@ -3,12 +3,16 @@
 #include <string>
 #include <sstream>
 #include <cstdlib>
+#include <algorithm>
+#include <cstring>
 
 #define FILELIMIT 30
 #define FILEPATH "enwiki-mini.xml"
 
 std::string getArticleFilename(std::string title) {
   std::string firstLetters = title.substr(0, 2);
+  // make first two letters of title lowercase
+  std::transform(firstLetters.begin(), firstLetters.end(), firstLetters.begin(), ::tolower);
   std::string base = "article/";
   std::string ending = ".txt";
   base.append(firstLetters);
@@ -48,7 +52,10 @@ int main() {
       if(line.find("<title>") != std::string::npos) {
         line = trim(line);
         std::string title = line.substr(7, line.length() - 15);
+
+        // create file object
         std::ofstream articleFile(getArticleFilename(title).c_str(), std::ofstream::out);
+
         fileCount++;
         while(getline(file, line)) {
           if(line.find("</page>") != std::string::npos) { break; }
