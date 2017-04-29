@@ -7,11 +7,22 @@
 #define FILELIMIT 30
 #define FILEPATH "enwiki-mini.xml"
 
-std::string getArticleFilename(int input) {
-  std::stringstream stream;
-  stream << "article/article_" << input << ".txt";
-  return stream.str();
+std::string getArticleFilename(std::string title) {
+  std::string firstLetters = title.substr(0, 2);
+  std::string base = "article/";
+  std::string ending = ".txt";
+  base.append(firstLetters);
+  base.append("/");
+  base.append(title);
+  base.append(ending);
+  return base;
 }
+
+// FIXME
+// Move to .h
+std::string &ltrim(std::string &s);
+std::string &rtrim(std::string &s);
+std::string &trim(std::string &s);
 
 int main() {
   // Variables
@@ -34,8 +45,10 @@ int main() {
   // Read File
   if(file.is_open()) {
     while(getline(file, line)) {
-      if(line.find("<page>") != std::string::npos) {
-        std::ofstream articleFile(getArticleFilename(fileCount).c_str(), std::ofstream::out);
+      if(line.find("<title>") != std::string::npos) {
+        line = trim(line);
+        std::string title = line.substr(7, line.length() - 15);
+        std::ofstream articleFile(getArticleFilename(title).c_str(), std::ofstream::out);
         fileCount++;
         while(getline(file, line)) {
           if(line.find("</page>") != std::string::npos) { break; }
@@ -50,4 +63,20 @@ int main() {
 
   // Finish
   return EXIT_SUCCESS;
+}
+
+std::string &ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))));
+    return s;
+}
+
+std::string &rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+    return s;
+}
+
+std::string &trim(std::string &s) {
+    return ltrim(rtrim(s));
 }
