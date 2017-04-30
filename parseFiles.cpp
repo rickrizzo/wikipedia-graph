@@ -30,7 +30,7 @@ std::string &trim(std::string &s);
 
 int main() {
   // Variables
-  int fileCount = 0;
+  int fileCount;
   std::string line;
   std::ifstream file(FILEPATH);
 
@@ -56,10 +56,24 @@ int main() {
         // create file object
         std::ofstream articleFile(getArticleFilename(title).c_str(), std::ofstream::out);
 
-        fileCount++;
         while(getline(file, line)) {
-          if(line.find("</page>") != std::string::npos) { break; }
-          articleFile << line << std::endl;
+		if(line.find("[[") != std::string::npos) {
+			bool readingLink = false;
+			int linkStart, linkEnd;
+			for(int i = 0; i < line.length(); i++) {
+				if(!readingLink && line[i] == '[' && line[i+1] == '[') {
+					linkStart = i+2;
+					readingLink = true;
+					i++;
+				}
+				if(readingLink && line[i] == ']' && line[i+1] == ']') {
+					readingLink = false;
+					linkEnd = i;
+					articleFile << line.substr(linkStart, linkEnd - linkStart) << std::endl;
+				}
+			}
+		}  
+		if(line.find("</page>") != std::string::npos) { break; }
         }
         articleFile.close();
         if(fileCount == FILELIMIT) { break; }
