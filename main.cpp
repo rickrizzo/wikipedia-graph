@@ -134,4 +134,5 @@ void *read_files(void *thread_arg) {
   *return_val = pthread_self();
   pthread_exit(return_val);
 
+  return return_val;
 }
