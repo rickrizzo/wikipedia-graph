@@ -14,16 +14,19 @@
 #include "article.h"
 
 #define FILENUM 30
-#define FILESIZE 1000
-#define FILEPATH "enwiki-mini.xml"
+#define NUM_DIRECTORIES 1296
+
 #define THREADS_PER_RANK 2
 
 // MPI Variables
 int rank, num_procs;
-int articles_per_rank;
+
+// int articles_per_rank;
+int directories_per_rank;
 
 // Function Templates
 std::string getArticleFilename(int input);
+std::string getDirectoryName(int input);
 std::string &ltrim(std::string &s);
 std::string &rtrim(std::string &s);
 std::string &trim(std::string &s);
@@ -40,13 +43,16 @@ int main(int argc, char *argv[]) {
 
   // if last rank, how many files?
   // if last rank && numbers of files not evenly divisible by number of ranks
-  if (rank == num_procs - 1 && FILENUM % num_procs > 0) {
-    articles_per_rank = FILENUM % num_procs;
+  // if (rank == num_procs - 1 && FILENUM % num_procs > 0) {
+  //   articles_per_rank = FILENUM % num_procs;
+  //
+  // // if not last rank or (last rank && num files evenly divisible by num ranks)
+  // } else {
+  //   articles_per_rank = FILENUM / num_procs;
+  // }
 
-  // if not last rank or (last rank && num files evenly divisible by num ranks)
-  } else {
-    articles_per_rank = FILENUM / num_procs;
-  }
+  // should divide evenly
+  directories_per_rank = NUM_DIRECTORIES / num_procs;
 
   // hold each of the thread ids
   pthread_t threads[THREADS_PER_RANK];
@@ -88,6 +94,39 @@ std::string getArticleFilename(int input) {
   stream << "article/article_" << input << ".txt";
   return stream.str();
 }
+
+// takes in an integer that represents the number directory we want
+// returns a string, the two letter name of that directory
+std::string getDirectoryName(int input) {
+  std::string directoryName = "~~";
+
+  char firstLetter, secondLetter;
+
+  // relative position of the first and second letters in the list
+  // 0123456789abcdefghijklmnopqrstuvwxyz
+  int firstLetterStart = input / 36;
+  int secondLetterStart = input % 36;
+
+  // offset those relative positions so they match up with the ascii table
+  if (firstLetterStart < 10) {
+    // character '0' is at decimel 48, so need to add 48
+    firstLetter = 48 + firstLetterStart;
+  } else {
+    firstLetter = 87 + firstLetterStart;
+  }
+
+  if (secondLetterStart < 10) {
+    secondLetter = 48 + secondLetterStart;
+  } else {
+    secondLetter = 87 + secondLetterStart;
+  }
+
+  directoryName[0] = firstLetter;
+  directoryName[1] = secondLetter;
+
+  return directoryName;
+}
+
 
 std::string &ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(),
