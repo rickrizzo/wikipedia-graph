@@ -96,16 +96,12 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < THREADS_PER_RANK; i++) {
     int rc = pthread_create(&threads[i], &attr, readFiles, &thread_args[i]);
 
-    // if we need to pass arguments into the threads, use this line
-    // int rc = pthread_create(&threads[i], NULL, readFiles, &thread_args[i]);
-
     if (rc != 0) {
       std::cerr << "MAIN: Could not create thread" << std::endl;
       return EXIT_FAILURE;
     }
 
   }
-  // read_files((void *)(intptr_t)(0));
 
   // join threads
   for (int i = 0; i < THREADS_PER_RANK; i++)
@@ -178,13 +174,6 @@ string getDirectoryName(int input) {
 }
 
 void *readFiles(void *arg) {
-
-  // int lowerbound = (rank * (FILENUM / num_procs));
-  // int upperbound = (rank + 1) * FILENUM / num_procs;
-
-  // // indeces of first directory for this rank and first directory for next rank
-  // int lowerbound = (rank * (NUM_DIRECTORIES / num_procs));
-  // int upperbound = ((rank + 1) * NUM_DIRECTORIES / num_procs);
 
   thread_arg_t thread_args = *(thread_arg_t*)arg;
 
