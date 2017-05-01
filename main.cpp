@@ -139,9 +139,8 @@ int main(int argc, char *argv[]) {
   }
   for(int i = 0; i < num_procs; i++) {
     for(int j = 0; j < articlesPerPid[i].size(); j++) {
-
       printf("%d send %s link %s to %d\n", mpi_rank, articlesPerPid[i][j].source.t, articlesPerPid[i][j].link.t, i);
-      // MPI_Isend(articlesPerPid[i][j].link.t, /*SIZE OF STRING*/, MPI_CHAR, i, 0, send_request);
+      MPI_Isend(articlesPerPid[i][j].link.t, 100, MPI_CHAR, i, 0, MPI_COMM_WORLD, &send_request);
     }
   }
 
