@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
   for(int i = 0; i < articles.size(); i++) {
     cout << mpi_rank << " " << articles[i].getTitle() << endl;
     for(int j = 0; j < articles[i].getLinks().size(); j++) {
-      printf("%s", articles[i].getLinks()[j]);
+      printf("%s", articles[i].getLinks()[j]); // should this be .t?
     }
   }
 
@@ -230,6 +230,8 @@ void *readFiles(void *arg) {
 
     std::ifstream file(tmpPath.c_str());
     if(file.is_open()) {
+
+
       std::string line;
       getline(file, line);
       // create Article object
