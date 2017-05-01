@@ -8,10 +8,12 @@
 #include <cstring>
 #include <cstdlib>
 #include <stdint.h>
+#include <cmath>
 
 using namespace std;
 
-string alphanumeric = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const string alphanumeric = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const string alphanumericlower = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 string getFolder(string title) {
   size_t first, second;
@@ -34,6 +36,57 @@ string getFolder(string title) {
 
 string makeArticleFilename(string title) {
   return "article/" + getFolder(title) + "/" + title + ".txt";
+}
+
+int getArticleDir(string folder){
+  int firstLetter = alphanumericlower.find_first_of(folder[0]);
+  int secondLetter = alphanumericlower.find_first_of(folder[1]);
+
+  int dir = firstLetter * 36 + secondLetter;
+  return dir;
+}
+
+int getArticlePid(string name, int num_directories, int num_procs){
+  string folder = getFolder(name);
+
+  int dir = getArticleDir(folder);
+  int directories_per_rank = (num_directories / num_procs);
+
+  int pid = dir / directories_per_rank;
+
+  return pid;
+}
+
+// takes in an integer that represents the number directory we want
+// returns a string, the two letter name of that directory
+string getDirectoryName(int input) {
+  std::string directoryName = "~~/";
+
+  char firstLetter, secondLetter;
+
+  // relative position of the first and second letters in the list
+  // 0123456789abcdefghijklmnopqrstuvwxyz
+  int firstLetterStart = input / 36;
+  int secondLetterStart = input % 36;
+
+  // offset those relative positions so they match up with the ascii table
+  if (firstLetterStart < 10) {
+    // character '0' is at decimel 48, so need to add 48
+    firstLetter = 48 + firstLetterStart;
+  } else {
+    firstLetter = 87 + firstLetterStart;
+  }
+
+  if (secondLetterStart < 10) {
+    secondLetter = 48 + secondLetterStart;
+  } else {
+    secondLetter = 87 + secondLetterStart;
+  }
+
+  directoryName[0] = firstLetter;
+  directoryName[1] = secondLetter;
+
+  return directoryName;
 }
 
 string &ltrim(string &s) {

@@ -51,6 +51,8 @@ int directories_per_thread;
 // Function Templates
 std::string getArticleFilename(int input);
 std::string getDirectoryName(int input);
+int getArticlePid(string name);
+int getArticleDir(string folder);
 
 void *readFiles(void *thread_arg);
 
@@ -63,7 +65,8 @@ int main(int argc, char *argv[]) {
   // indeces of first directory for this rank and first directory for next rank
   // int rankUpperbound = ((rank + 1) * NUM_DIRECTORIES / num_procs);
   directories_per_rank = (NUM_DIRECTORIES / num_procs);
-  int rankLowerbound = (mpi_rank * directories_per_thread);
+  int rankLowerbound = (mpi_rank * directories_per_rank);
+  // cout << mpi_rank << " " << rankLowerbound<< " " <<directories_per_rank <<endl;
 
   // should divide evenly
 
@@ -121,10 +124,22 @@ int main(int argc, char *argv[]) {
   // Repeat until no more messages to send for each rank
   // Barrier and close
 
+  vector<ArticleMatch> articlesPerPid[num_procs];
   for(int i = 0; i < articles.size(); i++) {
     cout << mpi_rank << " " << articles[i].getTitle() << endl;
     for(int j = 0; j < articles[i].getLinks().size(); j++) {
-      printf("%s", articles[i].getLinks()[j]); // should this be .t?
+
+      int sendPid = getArticlePid(articles[i].getLinks()[j].t, NUM_DIRECTORIES, num_procs);
+      printf("send %s to %d\n", articles[i].getLinks()[j].t, sendPid);
+      ArticleMatch match;
+      match.source = articles[i].getTitleA();
+      match.link = articles[i].getLinks()[j];
+      articlesPerPid[sendPid].push_back(match);
+    }
+  }
+  for(int i = 0; i < num_procs; i++) {
+    for(int j = 0; j < articlesPerPid[i].size(); j++) {
+      printf("%d send %s link %s to %d\n", mpi_rank,articlesPerPid[i][j].source.t,articlesPerPid[i][j].link.t, i);
     }
   }
 
@@ -133,44 +148,6 @@ int main(int argc, char *argv[]) {
   // Exit Program
   MPI_Finalize();
   return EXIT_SUCCESS;
-}
-
-string getArticleFilename(int input) {
-  std::stringstream stream;
-  stream << "article/article_" << input << ".txt";
-  return stream.str();
-}
-
-// takes in an integer that represents the number directory we want
-// returns a string, the two letter name of that directory
-string getDirectoryName(int input) {
-  std::string directoryName = "~~/";
-
-  char firstLetter, secondLetter;
-
-  // relative position of the first and second letters in the list
-  // 0123456789abcdefghijklmnopqrstuvwxyz
-  int firstLetterStart = input / 36;
-  int secondLetterStart = input % 36;
-
-  // offset those relative positions so they match up with the ascii table
-  if (firstLetterStart < 10) {
-    // character '0' is at decimel 48, so need to add 48
-    firstLetter = 48 + firstLetterStart;
-  } else {
-    firstLetter = 87 + firstLetterStart;
-  }
-
-  if (secondLetterStart < 10) {
-    secondLetter = 48 + secondLetterStart;
-  } else {
-    secondLetter = 87 + secondLetterStart;
-  }
-
-  directoryName[0] = firstLetter;
-  directoryName[1] = secondLetter;
-
-  return directoryName;
 }
 
 void *readFiles(void *arg) {
@@ -184,6 +161,7 @@ void *readFiles(void *arg) {
     std::string dirPath = "article/";
 
     dirPath.append(getDirectoryName(i));
+    // cout << mpi_rank << " " << i << " " << dirPath << " " << getArticleDir(getDirectoryName(i))<<" "<< getArticlePid(getDirectoryName(i), NUM_DIRECTORIES, num_procs)<< " " <<directories_per_rank <<endl;
     DIR *dir;
     struct dirent *ent;
     if ((dir = opendir (dirPath.c_str())) != NULL) {
