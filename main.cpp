@@ -174,7 +174,6 @@ std::string getDirectoryName(int input) {
   return directoryName;
 }
 
-
 void *readFiles(void *arg) {
 
   // int lowerbound = (rank * (FILENUM / num_procs));
@@ -205,7 +204,7 @@ void *readFiles(void *arg) {
 
         pthread_mutex_lock(&mutex1);
         // std::cout << dirPath + ent->d_name << std::endl;
-        
+
         // ent->d_name is the name of the file
         (*thread_args.filePaths).push_back(dirPath + ent->d_name);
         pthread_mutex_unlock(&mutex1);
@@ -275,7 +274,7 @@ void *readFiles(void *arg) {
 
   unsigned int *return_val = new unsigned int;
 
-  return_val = (unsigned int*)pthread_self();
+  *return_val = gettid();
   pthread_exit(return_val);
 
   return return_val;

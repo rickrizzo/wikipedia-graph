@@ -51,5 +51,12 @@ string &trim(string &s) {
   return ltrim(rtrim(s));
 }
 
+uint64_t gettid() {
+    pthread_t ptid = pthread_self();
+    uint64_t threadId = 0;
+    memcpy(&threadId, &ptid, std::min(sizeof(threadId), sizeof(ptid)));
+    return threadId;
+}
+
 
 #endif //HELPERS_H
