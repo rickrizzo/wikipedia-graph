@@ -46,7 +46,7 @@ int main() {
         // create file object
         ofstream articleFile(makeArticleFilename(title).c_str(), ofstream::out);
         articleFile << "title: "<< title <<endl;
-        cout << endl << "title: "<< title <<endl;
+        cout << fileCount << " title: "<< title <<endl;
 
         while (getline(file, line)) {
           // cout << ":";
@@ -80,8 +80,8 @@ int main() {
                 (linkStart+tagFile.length()<line.length() && line.compare(linkStart, tagFile.length(), tagFile) == 0) || // File
                 (linkStart+tagMedia.length()<line.length() && line.compare(linkStart, tagMedia.length(), tagMedia) == 0) || // Media
                 (linkStart+tagSpecial.length()<line.length() && line.compare(linkStart, tagSpecial.length(), tagSpecial) == 0) || // Special
-                (linkStart+tagTemplate.length()<line.length() && line.compare(linkStart, tagTemplate.length(), tagTemplate) == 0) || // Template
-                (linkStart+tagCategory.length()<line.length() && line.compare(linkStart, tagCategory.length(), tagCategory) == 0) // Category
+                // (linkStart+tagCategory.length()<line.length() && line.compare(linkStart, tagCategory.length(), tagCategory) == 0) || // Category
+                (linkStart+tagTemplate.length()<line.length() && line.compare(linkStart, tagTemplate.length(), tagTemplate) == 0) // Template
               )
             // ignore, not a valid page
             {

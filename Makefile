@@ -52,3 +52,5 @@ parse: makeDirs.out parse.out
 blue:
 	# mpic++ -O5 main.cpp article.cpp -o main.out
 	mpixlcxx -O5 main.cpp article.cpp -o main.out -qflag=w
+	mpixlcxx -O5 parseFiles.cpp -o parse.out -qflag=w
+	mpixlcxx -O5 makeDirs.cpp -o makeDirs.out -qflag=w
