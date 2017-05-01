@@ -9,6 +9,7 @@
 #include <cctype>
 #include <locale>
 #include <mpi.h>
+ #include <cstdlib>
 using namespace std;
 
 #include "article.h"
