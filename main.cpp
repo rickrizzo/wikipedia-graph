@@ -11,13 +11,14 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <utility>
-#include <mpi.h>
 #include <cstdlib>
 
-using namespace std;
+#include "mpi.h"
 
 #include "article.h"
 #include "helpers.h"
+
+using namespace std;
 
 #define FILENUM 30
 #define NUM_DIRECTORIES 1296
@@ -130,7 +131,7 @@ int main(int argc, char *argv[]) {
     for(int j = 0; j < articles[i].getLinks().size(); j++) {
 
       int sendPid = getArticlePid(articles[i].getLinks()[j].t, NUM_DIRECTORIES, num_procs);
-      printf("send %s from %s to %d\n", articles[i].getLinks()[j].t, articles[i].getTitle().c_str(), sendPid);
+      // printf("send %s from %s to %d\n", articles[i].getLinks()[j].t, articles[i].getTitle().c_str(), sendPid);
       ArticleMatch match;
       match.source = articles[i].getTitleA();
       match.link = articles[i].getLinks()[j];
@@ -138,10 +139,33 @@ int main(int argc, char *argv[]) {
     }
   }
   for(int i = 0; i < num_procs; i++) {
-    for(int j = 0; j < articlesPerPid[i].size(); j++) {
-      printf("%d send %s link %s to %d\n", mpi_rank, articlesPerPid[i][j].source.t, articlesPerPid[i][j].link.t, i);
-      MPI_Isend(articlesPerPid[i][j].link.t, 100, MPI_CHAR, i, 0, MPI_COMM_WORLD, &send_request);
-    }
+    int temp = articlesPerPid[i].size();
+    MPI_Isend(&temp, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD, &send_request);
+  }
+  // for(int i = 0; i < num_procs; i++) {
+  //   for(int j = 0; j < articlesPerPid[i].size(); j++) {
+  //     printf("From R%d article:%s send link:%s to R%d\n", mpi_rank, articlesPerPid[i][j].source.t, articlesPerPid[i][j].link.t, i);
+  //     MPI_Isend(articlesPerPid[i][j].link.t, 100, MPI_CHAR, i, 0, MPI_COMM_WORLD, &send_request);
+  //   }
+  // }
+
+
+  // GET NUM REQUESTS, THEN RECV
+  //MPI_Barrier(MPI_COMM_WORLD);
+  int num_msgs = 0;
+  for(int i = 0; i < num_procs; i++) {
+    int temp;
+    MPI_Irecv(&temp, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recv_request);
+    num_msgs += temp;
+  }
+
+  std::cout << "RANK " << mpi_rank << " WILL RECEIVE " << num_msgs << " MESSAGES" << std::endl;
+
+  for(int i = 0; i < num_msgs; i++) {
+    // char buffer[1000];
+    // MPI_Irecv(buffer, 100, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recv_request);
+    // printf("RECV: %s\n", buffer);
+    // printf("%s", rbuf);
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
