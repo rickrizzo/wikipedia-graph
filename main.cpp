@@ -119,12 +119,24 @@ int main(int argc, char *argv[]) {
   {
     unsigned int *x;
     pthread_join(threads[i], (void **)&x);
-
     delete(x);
   }
 
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  // COMMUNICATION
+  // Each rank iterates through article list
+  // For each article, iterate through the links
+  // For each link, identify the rank with that link and send your title
+  // Upon receive, add that title to your links (potentially a second links field?)
+  // Repeat until no more messages to send for each rank
+  // Barrier and close
+
   for(int i = 0; i < articles.size(); i++) {
     cout << mpi_rank << " " << articles[i].getTitle() << endl;
+    for(int j = 0; j < articles[i].getLinks().size(); j++) {
+      printf("%s", articles[i].getLinks()[j]);
+    }
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -134,7 +146,7 @@ int main(int argc, char *argv[]) {
   return EXIT_SUCCESS;
 }
 
-std::string getArticleFilename(int input) {
+string getArticleFilename(int input) {
   std::stringstream stream;
   stream << "article/article_" << input << ".txt";
   return stream.str();
@@ -142,7 +154,7 @@ std::string getArticleFilename(int input) {
 
 // takes in an integer that represents the number directory we want
 // returns a string, the two letter name of that directory
-std::string getDirectoryName(int input) {
+string getDirectoryName(int input) {
   std::string directoryName = "~~/";
 
   char firstLetter, secondLetter;
