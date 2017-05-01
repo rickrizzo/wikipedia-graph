@@ -33,7 +33,7 @@ download:
 	curl -O https://dumps.wikimedia.org/enwiki/20170101/enwiki-20170101-pages-articles-multistream.xml.bz2
 
 parse:
-	# rm -rf article
+	rm -rf article
 	g++ parseFiles.cpp -o parse.out -std=c++98
 	./parse.out
 
