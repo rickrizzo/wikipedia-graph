@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdlib>
+#include <stdint.h>
 
 using namespace std;
 
