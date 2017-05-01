@@ -52,11 +52,38 @@ string &trim(string &s) {
   return ltrim(rtrim(s));
 }
 
-uint64_t gettid() {
+size_t gettid() {
     pthread_t ptid = pthread_self();
-    uint64_t threadId = 0;
+    size_t threadId = 0;
     memcpy(&threadId, &ptid, std::min(sizeof(threadId), sizeof(ptid)));
     return threadId;
+}
+
+typedef struct {
+  pthread_mutex_t count_lock;
+  pthread_cond_t ok_to_proceed;
+  int count;
+  int num_threads;
+} mylib_barrier_t;
+
+void mylib_init_barrier(mylib_barrier_t *b, int num_threads) {
+  b->count = 0;
+  b->num_threads = num_threads;
+  pthread_mutex_init(&(b->count_lock), NULL);
+  pthread_cond_init(&(b->ok_to_proceed), NULL);
+}
+
+void mylib_barrier (mylib_barrier_t *b) {
+  pthread_mutex_lock(&(b->count_lock));
+  b->count ++;
+  if (b->count == b->num_threads) {
+    b->count = 0;
+    pthread_cond_broadcast(&(b->ok_to_proceed));
+  }
+  else{
+    while (0 != pthread_cond_wait(&(b->ok_to_proceed), &(b->count_lock)));
+  }
+  pthread_mutex_unlock(&(b->count_lock));
 }
 
 

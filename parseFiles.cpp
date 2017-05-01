@@ -9,9 +9,9 @@
 #include "helpers.h"
 
 using namespace std;
-#define FILELIMIT 10000000
-#define FILEPATH "enwiki-mini.xml"
-// #define FILEPATH "/gpfs/u/home/PCP6/PCP6kmcn/scratch/final/enwiki-20170101-pages-articles-multistream.xml"
+#define FILELIMIT 18000000
+// #define FILEPATH "enwiki-mini.xml"
+#define FILEPATH "/gpfs/u/home/PCP6/PCP6kmcn/scratch/final/enwiki-20170101-pages-articles-multistream.xml"
 
 int main() {
   // Variables
@@ -45,7 +45,7 @@ int main() {
 
         // create file object
         ofstream articleFile(makeArticleFilename(title).c_str(), ofstream::out);
-        articleFile << "title: "<< title <<endl;
+        // articleFile << "title: "<< title <<endl;
         cout << fileCount << " title: "<< title <<endl;
 
         while (getline(file, line)) {

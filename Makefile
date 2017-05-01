@@ -19,7 +19,7 @@ n ?= 9
 all: compile run
 
 main.out: main.cpp article.cpp article.h
-	mpic++ -Wall main.cpp article.cpp -o main.out -lpthread
+	mpic++ -Wall main.cpp article.cpp -o main.out -lpthread -g -O0 -fno-inline
 
 compile: main.out
 
