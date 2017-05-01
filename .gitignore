@@ -30,3 +30,5 @@
 
 # Article Files
 article/
+
+*.dSYM

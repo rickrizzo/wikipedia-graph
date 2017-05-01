@@ -8,10 +8,11 @@
 #include <functional>
 #include <cctype>
 #include <locale>
-
 #include <mpi.h>
+using namespace std;
 
 #include "article.h"
+#include "helpers.h"
 
 #define FILENUM 30
 #define NUM_DIRECTORIES 1296
@@ -27,10 +28,6 @@ int directories_per_rank;
 // Function Templates
 std::string getArticleFilename(int input);
 std::string getDirectoryName(int input);
-std::string &ltrim(std::string &s);
-std::string &rtrim(std::string &s);
-std::string &trim(std::string &s);
-
 void *read_files(void *thread_arg);
 
 int main(int argc, char *argv[]) {
@@ -62,10 +59,10 @@ int main(int argc, char *argv[]) {
 
   // create threads
   for (int i = 0; i < THREADS_PER_RANK; i++) {
-    int rc = pthread_create(&threads[i], NULL, read_files, &thread_arg);
+    int rc = pthread_create(&threads[i], NULL, read_files, (void *)(intptr_t)(i+1));
 
     // if we need to pass arguments into the threads, use this line
-    // int rc = pthread_create(&threads[i], NULL, read_files, &thread_args[i]);
+    // int rc = pthread_create(&threads[i], NULL, read_files, thread_args[i]);
 
     if (rc != 0) {
       std::cerr << "MAIN: Could not create thread" << std::endl;
@@ -74,6 +71,7 @@ int main(int argc, char *argv[]) {
     }
 
   }
+  read_files((void *)(intptr_t)(0));
 
   // join threads
   for (int i = 0; i < THREADS_PER_RANK; i++)
@@ -127,25 +125,10 @@ std::string getDirectoryName(int input) {
   return directoryName;
 }
 
-
-std::string &ltrim(std::string &s) {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-            std::not1(std::ptr_fun<int, int>(std::isspace))));
-    return s;
-}
-
-std::string &rtrim(std::string &s) {
-    s.erase(std::find_if(s.rbegin(), s.rend(),
-            std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
-    return s;
-}
-
-std::string &trim(std::string &s) {
-    return ltrim(rtrim(s));
-}
-
 void *read_files(void *thread_arg) {
   // Multifile Read
+  int thread_id = (intptr_t)thread_arg;
+
   int lowerbound = (rank * (FILENUM / num_procs));
   int upperbound = (rank + 1) * FILENUM / num_procs;
   for(int i = lowerbound; i < upperbound; i++) {

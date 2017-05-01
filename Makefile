@@ -18,25 +18,36 @@ n ?= 10
 ################################################################################
 all: compile run
 
-compile:
+main.out: main.cpp article.cpp article.h
 	mpic++ -Wall main.cpp article.cpp -o main.out -lpthread
+
+compile: main.out
 
 clean:
 	rm -f main.out
 	rm -f parse.out
+	rm -f makeDirs.out
 
-run:
+run: compile
 	mpirun -n $(n) ./main.out
 
 download:
 	echo "WARNING ABOUT TO DOWNLOAD 13GBs"
 	curl -O https://dumps.wikimedia.org/enwiki/20170101/enwiki-20170101-pages-articles-multistream.xml.bz2
 
-parse:
-	rm -rf article
-	g++ parseFiles.cpp -o parse.out -std=c++98
-	./parse.out
+unzip:
+	bzip2 -kd enwiki-20170101-pages-articles-multistream.xml.bz2
 
+parse.out: parseFiles.cpp helpers.h
+	g++ parseFiles.cpp -o parse.out -std=c++98 -g
+
+makeDirs.out: makeDirs.cpp
+	g++ makeDirs.cpp -o makeDirs.out -std=c++98 -g
+
+parse: makeDirs.out parse.out
+	rm -rf article
+	./makeDirs.out
+	./parse.out
 
 blue:
 	# mpic++ -O5 main.cpp article.cpp -o main.out

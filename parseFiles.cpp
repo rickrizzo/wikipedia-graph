@@ -5,99 +5,96 @@
 #include <cstdlib>
 #include <algorithm>
 #include <cstring>
+#include "helpers.h"
 
+using namespace std;
 #define FILELIMIT 30
 #define FILEPATH "enwiki-mini.xml"
 
-std::string getArticleFilename(std::string title) {
-  std::string firstLetters = title.substr(0, 2);
-  // make first two letters of title lowercase
-  std::transform(firstLetters.begin(), firstLetters.end(), firstLetters.begin(), ::tolower);
-  std::string base = "article/";
-  std::string ending = ".txt";
-  base.append(firstLetters);
-  base.append("/");
-  base.append(title);
-  base.append(ending);
-  return base;
-}
-
-// FIXME
-// Move to .h
-std::string &ltrim(std::string &s);
-std::string &rtrim(std::string &s);
-std::string &trim(std::string &s);
-
 int main() {
   // Variables
-  int fileCount;
-  std::string line;
-  std::ifstream file(FILEPATH);
+  int fileCount = 0;
+  string line = "";
+  ifstream file(FILEPATH);
 
-  // Make Directory
-  system("mkdir -p article");
-  for( char m = '0'; m<='z'; ++m) {
-    for( char n = '0'; n<='z'; ++n) {
-      std::stringstream stream;
-      stream << "mkdir -p article/" << m << n;
-      system(stream.str().c_str());
-      if (n == '9') { n = '`'; }
-    }
-    if (m == '9') { m = '`'; }
-  }
+  string titleStart("<title>");
+  string pageEnd("</page>");
+  string tagFile(":File:");
+  string tagMedia("media:");
+  string tagSpecial("Special:");
+  string tagCategory("Category:");
 
   // Read File
   if(file.is_open()) {
-    while(getline(file, line)) {
-      if(line.find("<title>") != std::string::npos) {
-        line = trim(line);
-        std::string title = line.substr(7, line.length() - 15);
+    while (getline(file, line)) {
+      size_t startString = line.find_first_not_of(" \t");
+      //
+      if (startString != string::npos &&
+        startString + titleStart.length() <  line.length() &&
+        line.compare(startString, titleStart.length(), titleStart) == 0) {
+
+        fileCount += 1;
+        string title = line.substr(startString+7, line.length() - (15+startString));
 
         // create file object
-        std::ofstream articleFile(getArticleFilename(title).c_str(), std::ofstream::out);
+        ofstream articleFile(makeArticleFilename(title).c_str(), ofstream::out);
+        articleFile << "title: "<< title <<endl;
+        cout << "title: "<< title <<endl;
 
-        while(getline(file, line)) {
-		if(line.find("[[") != std::string::npos) {
-			bool readingLink = false;
-			int linkStart, linkEnd;
-			for(int i = 0; i < line.length(); i++) {
-				if(!readingLink && line[i] == '[' && line[i+1] == '[') {
-					linkStart = i+2;
-					readingLink = true;
-					i++;
-				}
-				if(readingLink && line[i] == ']' && line[i+1] == ']') {
-					readingLink = false;
-					linkEnd = i;
-					articleFile << line.substr(linkStart, linkEnd - linkStart) << std::endl;
-				}
-			}
-		}  
-		if(line.find("</page>") != std::string::npos) { break; }
+        while (getline(file, line)) {
+          size_t pos = 0;
+          size_t linkStart = line.find("[[", pos); // Find the start of the link
+          size_t linkEnd = line.length();
+          size_t pipe = line.length();
+          while (linkStart != string::npos) {
+            size_t linkStart = line.find("[[", pos); // Get the next link
+            if (linkStart == string::npos){
+              break;
+            }
+            linkStart += 2; // skip the [[
+            linkEnd = line.find("]]", linkStart); // Find the end of the link
+            pos = linkEnd + 2; // Move the current position to the end of the link
+            pipe = line.find("|", linkStart); // Check if there is a pipe in the link
+            if (pipe < linkEnd){
+              linkEnd = pipe; // We don't need the piped part
+            }
+
+            if (line[linkStart] == '#' || //anchor link
+                (line[linkStart] == '{' && line[linkStart+1] == '{') ||  //discussion page
+                (linkStart+tagFile.length()<line.length() && line.compare(linkStart, tagFile.length(), tagFile) == 0) || // File
+                (linkStart+tagMedia.length()<line.length() && line.compare(linkStart, tagMedia.length(), tagMedia) == 0) || // Media
+                (linkStart+tagSpecial.length()<line.length() && line.compare(linkStart, tagSpecial.length(), tagSpecial) == 0) || // Special
+                (linkStart+tagCategory.length()<line.length() && line.compare(linkStart, tagCategory.length(), tagCategory) == 0) // Category
+              )
+            // ignore, not a valid page
+            {
+              continue;
+            }
+            if (line[linkStart+1] == '/') // subpage, prepend this page's title
+            {
+              articleFile << title << line.substr(linkStart, linkEnd - linkStart) << endl;
+            }
+            else{
+              articleFile << line.substr(linkStart, linkEnd - linkStart) << endl;
+            }
+          }
+
+          startString = line.find_first_not_of(" \t");
+
+          if(startString != string::npos &&
+            startString + pageEnd.length() <= line.length() &&
+            line.compare(startString, pageEnd.length(), pageEnd) == 0) {
+              break;
+            }
         }
+
         articleFile.close();
         if(fileCount == FILELIMIT) { break; }
       }
     }
     file.close();
   }
-
+  cout << "num files: " << fileCount << endl;
   // Finish
   return EXIT_SUCCESS;
-}
-
-std::string &ltrim(std::string &s) {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-            std::not1(std::ptr_fun<int, int>(std::isspace))));
-    return s;
-}
-
-std::string &rtrim(std::string &s) {
-    s.erase(std::find_if(s.rbegin(), s.rend(),
-            std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
-    return s;
-}
-
-std::string &trim(std::string &s) {
-    return ltrim(rtrim(s));
 }
