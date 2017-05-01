@@ -9,9 +9,9 @@
 #include "helpers.h"
 
 using namespace std;
-#define FILELIMIT 10000000
-#define FILEPATH "enwiki-mini.xml"
-// #define FILEPATH "/gpfs/u/home/PCP6/PCP6kmcn/scratch/final/enwiki-20170101-pages-articles-multistream.xml"
+#define FILELIMIT 18000000
+// #define FILEPATH "enwiki-mini.xml"
+#define FILEPATH "/gpfs/u/home/PCP6/PCP6kmcn/scratch/final/enwiki-20170101-pages-articles-multistream.xml"
 
 int main() {
   // Variables
