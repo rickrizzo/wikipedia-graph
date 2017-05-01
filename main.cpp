@@ -20,7 +20,7 @@ using namespace std;
 #define THREADS_PER_RANK 2
 
 // MPI Variables
-int rank, num_procs;
+int mpi_rank, num_procs;
 
 // int articles_per_rank;
 int directories_per_rank;
@@ -36,11 +36,11 @@ int main(int argc, char *argv[]) {
   // Initialize Environment
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
 
   // if last rank, how many files?
   // if last rank && numbers of files not evenly divisible by number of ranks
-  // if (rank == num_procs - 1 && FILENUM % num_procs > 0) {
+  // if (mpi_rank == num_procs - 1 && FILENUM % num_procs > 0) {
   //   articles_per_rank = FILENUM % num_procs;
   //
   // // if not last rank or (last rank && num files evenly divisible by num ranks)
@@ -129,8 +129,8 @@ void *read_files(void *thread_arg) {
   // Multifile Read
   int thread_id = (intptr_t)thread_arg;
 
-  int lowerbound = (rank * (FILENUM / num_procs));
-  int upperbound = (rank + 1) * FILENUM / num_procs;
+  int lowerbound = (mpi_rank * (FILENUM / num_procs));
+  int upperbound = (mpi_rank + 1) * FILENUM / num_procs;
   for(int i = lowerbound; i < upperbound; i++) {
     std::ifstream file(getArticleFilename(i).c_str());
     if(file.is_open()) {
@@ -147,13 +147,16 @@ void *read_files(void *thread_arg) {
           }
         }
       }
-    file.close();
+      file.close();
+    } else {
+    std::cout << "Cannot open file" << std::endl;
     }
   }
 
   unsigned int *return_val = new unsigned int;
 
-  *return_val = pthread_self();
+  //*return_val = pthread_self();
+  return_val = (unsigned int*)pthread_self();
   pthread_exit(return_val);
 
   return return_val;
