@@ -45,7 +45,7 @@ int main() {
 
         // create file object
         ofstream articleFile(makeArticleFilename(title).c_str(), ofstream::out);
-        articleFile << "title: "<< title <<endl;
+        // articleFile << "title: "<< title <<endl;
         cout << fileCount << " title: "<< title <<endl;
 
         while (getline(file, line)) {

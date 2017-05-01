@@ -24,12 +24,9 @@ using namespace std;
 
 #define THREADS_PER_RANK 1
 
+// Pthread Variables
 pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
-
-
-
-
 struct thread_arg_t {
   int threadLowerbound;
   int threadUpperbound;
@@ -44,8 +41,6 @@ int mpi_rank, num_procs;
 // int articles_per_rank;
 int directories_per_rank;
 int directories_per_thread;
-
-
 
 // Function Templates
 std::string getArticleFilename(int input);
@@ -113,8 +108,7 @@ int main(int argc, char *argv[]) {
 
     if (rc != 0) {
       std::cerr << "MAIN: Could not create thread" << std::endl;
-      return 1;
-
+      return EXIT_FAILURE;
     }
 
   }
@@ -127,6 +121,10 @@ int main(int argc, char *argv[]) {
     pthread_join(threads[i], (void **)&x);
 
     delete(x);
+  }
+
+  for(int i = 0; i < articles.size(); i++) {
+    cout << mpi_rank << " " << articles[i].getTitle() << endl;
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -236,34 +234,18 @@ void *readFiles(void *arg) {
       pthread_mutex_unlock(&mutex2);
 
       std::ifstream file(tmpPath.c_str());
+
+      // create Article object
       if(file.is_open()) {
         std::string line;
+        Article article;
 
-        // create Article object
-
-
+        article.setTitle(tmpPath.substr(11, tmpPath.length() - 15));
         while(getline(file, line)) {
-
-          // std::cout << line << '\n';
-
-          // if(line.find("<title>") != std::string::npos) {
-          //   line = trim(line);
-          //
-          //   pthread_mutex_lock(&mutex2);
-          //   std::cout << line.substr(7, line.length() - 15) << std::endl;
-          //   pthread_mutex_unlock(&mutex2);
-          //
-          // }
-
-
-
-          if(line.find("<text>") != std::string::npos) {
-            // First line...
-            while(getline(file, line)) {
-              if(line.find("</text>") != std::string::npos) { break; }
-            }
-          }
+          article.addLinks(line);
         }
+        thread_args.articles->push_back(article);
+
       file.close();
       } else {
         std::cout << "Cannot open file" << std::endl;
