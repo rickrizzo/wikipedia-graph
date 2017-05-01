@@ -43,6 +43,7 @@ struct thread_arg_t {
 
 // MPI Variables
 int mpi_rank, num_procs;
+MPI_Request	send_request,recv_request;
 
 // int articles_per_rank;
 int directories_per_rank;
@@ -126,11 +127,10 @@ int main(int argc, char *argv[]) {
 
   vector<ArticleMatch> articlesPerPid[num_procs];
   for(int i = 0; i < articles.size(); i++) {
-    cout << mpi_rank << " " << articles[i].getTitle() << endl;
     for(int j = 0; j < articles[i].getLinks().size(); j++) {
 
       int sendPid = getArticlePid(articles[i].getLinks()[j].t, NUM_DIRECTORIES, num_procs);
-      printf("send %s to %d\n", articles[i].getLinks()[j].t, sendPid);
+      printf("send %s from %s to %d\n", articles[i].getLinks()[j].t, articles[i].getTitle().c_str(), sendPid);
       ArticleMatch match;
       match.source = articles[i].getTitleA();
       match.link = articles[i].getLinks()[j];
@@ -139,7 +139,9 @@ int main(int argc, char *argv[]) {
   }
   for(int i = 0; i < num_procs; i++) {
     for(int j = 0; j < articlesPerPid[i].size(); j++) {
-      printf("%d send %s link %s to %d\n", mpi_rank,articlesPerPid[i][j].source.t,articlesPerPid[i][j].link.t, i);
+
+      printf("%d send %s link %s to %d\n", mpi_rank, articlesPerPid[i][j].source.t, articlesPerPid[i][j].link.t, i);
+      // MPI_Isend(articlesPerPid[i][j].link.t, /*SIZE OF STRING*/, MPI_CHAR, i, 0, send_request);
     }
   }
 
@@ -186,6 +188,7 @@ void *readFiles(void *arg) {
     }
   }
   mylib_barrier(&thread_barrier);
+
   // now that the files are stored in the vector, read them
   pthread_mutex_lock(&mutexFilePath);
   int fileCount = (*thread_args.filePaths).size();
@@ -209,15 +212,13 @@ void *readFiles(void *arg) {
     std::ifstream file(tmpPath.c_str());
     if(file.is_open()) {
 
-
       std::string line;
-      getline(file, line);
       // create Article object
       Article current;
-      current.setTitle(line.substr(7));
-      cout << "Current: "<<current.getTitle() <<endl;
+      current.setTitle(tmpPath.substr(11, tmpPath.length() - 15));
+      // cout << "Current: "<< current.getTitle() <<endl;
       while(!file.eof() && getline(file, line)) {
-      // cout <<current.getTitle();
+        // cout <<current.getTitle();
         if (!line.length()) {continue;}
         current.addLinks(line);
       }
