@@ -6,6 +6,8 @@
 #include <sstream>
 #include <cstdlib>
 #include <cstring>
+#include <cstdlib>
+
 using namespace std;
 
 string alphanumeric = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
