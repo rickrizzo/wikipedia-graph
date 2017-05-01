@@ -128,12 +128,21 @@ int main(int argc, char *argv[]) {
   // Repeat until no more messages to send for each rank
   // Barrier and close
 
+  vector<ArticleMatch> articlesPerPid[num_procs];
   for(int i = 0; i < articles.size(); i++) {
     cout << mpi_rank << " " << articles[i].getTitle() << endl;
     for(int j = 0; j < articles[i].getLinks().size(); j++) {
       int sendPid = getArticlePid(articles[i].getLinks()[j].t, NUM_DIRECTORIES, num_procs);
       printf("send %s to %d\n", articles[i].getLinks()[j].t, sendPid);
-
+      ArticleMatch match;
+      match.source = articles[i].getTitleA();
+      match.link = articles[i].getLinks()[j];
+      articlesPerPid[sendPid].push_back(match);
+    }
+  }
+  for(int i = 0; i < num_procs; i++) {
+    for(int j = 0; j < articlesPerPid[i].size(); j++) {
+      printf("%d send %s link %s to %d\n", mpi_rank,articlesPerPid[i][j].source.t,articlesPerPid[i][j].link.t, i);
     }
   }
 

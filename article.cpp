@@ -12,6 +12,10 @@ std::string Article::getTitle() {
   return std::string(this->title.t);
 }
 
+StringA Article::getTitleA() {
+  return this->title;
+}
+
 void Article::addLinks(std::string link) {
   StringA l;
   strcpy(l.t,link.c_str());

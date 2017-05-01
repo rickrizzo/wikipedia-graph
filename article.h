@@ -8,6 +8,10 @@ struct StringA {
   char t[100];
 };
 
+struct ArticleMatch {
+  StringA source;
+  StringA link;
+};
 
 class Article {
 private:
@@ -16,6 +20,7 @@ private:
 public:
   void setTitle(std::string title);
   std::string getTitle();
+  StringA getTitleA();
   void addLinks(std::string link);
 
   std::vector<StringA> getLinks();
