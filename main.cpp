@@ -57,9 +57,15 @@ void *readFiles(void *thread_arg);
 
 int main(int argc, char *argv[]) {
   // Initialize Environment
+  MPI_Datatype MPI_ArticleMatch; // datatype for sending
+
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
   MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
+  MPI_Type_contiguous(200, MPI_CHAR, &MPI_ArticleMatch);
+  MPI_Type_commit(&MPI_ArticleMatch);
+
 
   // indeces of first directory for this rank and first directory for next rank
   // int rankUpperbound = ((rank + 1) * NUM_DIRECTORIES / num_procs);
