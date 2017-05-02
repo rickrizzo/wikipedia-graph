@@ -127,7 +127,7 @@ void mylib_init_barrier(mylib_barrier_t *b, int num_threads) {
 void mylib_barrier (mylib_barrier_t *b) {
   pthread_mutex_lock(&(b->count_lock));
   b->count ++;
-  cout << "barrier: "<<b->count<<" / " << b->num_threads << endl;
+  // cout << "barrier: "<<b->count<<" / " << b->num_threads << endl;
   if (b->count == b->num_threads) {
     b->count = 0;
     pthread_cond_broadcast(&(b->ok_to_proceed));
