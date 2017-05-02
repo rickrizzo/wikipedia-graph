@@ -5,7 +5,7 @@
 
 void Article::setTitle(std::string title) {
 
-  strcpy(this->title.t,title.c_str());
+  strncpy(this->title.t,title.c_str(), 100);
 }
 
 std::string Article::getTitle() {
@@ -18,7 +18,7 @@ StringA Article::getTitleA() {
 
 void Article::addLinks(std::string link) {
   StringA l;
-  strcpy(l.t,link.c_str());
+  strncpy(l.t,link.c_str(), 100);
   links.push_back(l);
 }
 

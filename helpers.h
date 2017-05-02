@@ -46,15 +46,13 @@ int getArticleDir(string folder){
   return dir;
 }
 
-int getArticlePid(string name, int num_directories, int num_procs){
+int getArticleRank(string name, int num_directories, int num_procs){
   string folder = getFolder(name);
 
   int dir = getArticleDir(folder);
   int directories_per_rank = (num_directories / num_procs);
 
-  int pid = dir / directories_per_rank;
-
-  return pid;
+  return dir / directories_per_rank;
 }
 
 // takes in an integer that represents the number directory we want
@@ -129,6 +127,7 @@ void mylib_init_barrier(mylib_barrier_t *b, int num_threads) {
 void mylib_barrier (mylib_barrier_t *b) {
   pthread_mutex_lock(&(b->count_lock));
   b->count ++;
+  cout << "barrier: "<<b->count<<" / " << b->num_threads << endl;
   if (b->count == b->num_threads) {
     b->count = 0;
     pthread_cond_broadcast(&(b->ok_to_proceed));
