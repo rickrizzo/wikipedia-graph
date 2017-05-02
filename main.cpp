@@ -138,8 +138,9 @@ int main(int argc, char *argv[]) {
   }
   for(int i = 0; i < num_procs; i++) {
     int temp = articlesByRank[i].size();
-    MPI_Isend(&temp, 1, MPI_UNSIGNED_LONG, i, i, MPI_COMM_WORLD, &send_request);
+    MPI_Isend(&temp, 1, MPI_INT, i, i, MPI_COMM_WORLD, &send_request);
   }
+
   // for(int i = 0; i < num_procs; i++) {
   //   for(int j = 0; j < articlesByRank[i].size(); j++) {
   //     printf("From R%d article:%s send link:%s to R%d\n", mpi_rank, articlesByRank[i][j].source.t, articlesByRank[i][j].link.t, i);
@@ -153,8 +154,8 @@ int main(int argc, char *argv[]) {
   int num_msgs = 0;
   for(int i = 0; i < num_procs; i++) {
     int temp = 0;
-    MPI_Irecv(&temp, 1, MPI_INT, i, i, MPI_COMM_WORLD, &recv_request);
-    // MPI_Wait(&recv_request, &status);
+    MPI_Irecv(&temp, 1, MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &send_request);
+    MPI_Wait(&send_request, &status);
     num_msgs += temp;
   }
 
