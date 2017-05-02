@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <utility>
 #include <cstdlib>
+#include <tr1/unordered_map>
 
 #include "mpi.h"
 
@@ -19,7 +20,7 @@
 #include "helpers.h"
 
 using namespace std;
-
+using namespace tr1;
 #define FILENUM 30
 #define NUM_DIRECTORIES 1296
 
@@ -40,8 +41,8 @@ struct thread_arg_t {
   int id;
   int * currentDir;
 
-  std::vector<std::string> *filePaths;
-  std::vector<Article> *articles;
+  vector<string> *filePaths;
+  vector<Article> *articles;
 };
 
 // MPI Variables
@@ -78,15 +79,16 @@ int main(int argc, char *argv[]) {
   directories_per_thread = directories_per_rank / THREADS_PER_RANK;
 
   // store all the files for this rank here
-  std::vector<std::string> filePaths;
-  std::vector<Article> articles;
+  vector<string> filePaths;
+  vector<Article> articles;
+  tr1::unordered_map<string, Article*> articleMap;
 
   // Initilize pthread variables
   mylib_init_barrier(&thread_barrier, THREADS_PER_RANK);
   pthread_attr_t attr;
   pthread_attr_init (&attr);
 
-  std::vector<thread_arg_t> thread_args;
+  vector<thread_arg_t> thread_args;
   int currentDir = rankLowerbound -1;
   for (int i = 0; i < THREADS_PER_RANK; i++) {
     // divide up directories by thread
@@ -105,7 +107,7 @@ int main(int argc, char *argv[]) {
     int rc = pthread_create(&threads[i], &attr, readFiles, &thread_args[i]);
 
     if (rc != 0) {
-      std::cerr << "MAIN: Could not create thread" << std::endl;
+      cerr << "MAIN: Could not create thread" << endl;
       return EXIT_FAILURE;
     }
 
@@ -121,6 +123,11 @@ int main(int argc, char *argv[]) {
 
   cout << mpi_rank << ": articles: "<< articles.size() << endl;
 
+  for (int i = 0; i < articles.size(); i++){
+    cout << mpi_rank << ": article: "<< articles[i].getTitle() << endl;
+    articleMap.insert(make_pair(articles[i].getTitle(),&articles[i]));
+  }
+
   MPI_Barrier(MPI_COMM_WORLD);
   cout << mpi_rank << " barrier done" << endl;
 
@@ -131,7 +138,7 @@ int main(int argc, char *argv[]) {
   // Upon receive, add that title to your links (potentially a second links field?)
   // Repeat until no more messages to send for each rank
   // Barrier and close
-  vector<ArticleMatch> *articlesByRank = new vector<ArticleMatch>[num_procs]; //right
+  vector<ArticleMatch> *articlesByRank = new vector<ArticleMatch>[num_procs];
 
   for(int i = 0; i < articles.size(); i++) {
     for(int j = 0; j < articles[i].getLinks().size(); j++) {
@@ -142,40 +149,82 @@ int main(int argc, char *argv[]) {
       articlesByRank[sendRank].push_back(match);
     }
   }
-  for(int i = 0; i < num_procs; i++) {
-    int temp = articlesByRank[i].size();
-    MPI_Isend(&temp, 1, MPI_INT, i, i, MPI_COMM_WORLD, &send_request);
-  }
+
+  // Send data
+  // int MPI_Isend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+              // MPI_Comm comm, MPI_Request *request)
+
+  int *numSend = new int[num_procs];
+  MPI_Request	*send_request_num = new MPI_Request[num_procs];
 
   for(int i = 0; i < num_procs; i++) {
-    for(int j = 0; j < articlesByRank[i].size(); j++) {
-      printf("From R%d article:%s send link:%s to R%d\n", mpi_rank, articlesByRank[i][j].source.t, articlesByRank[i][j].link.t, i);
-      MPI_Isend(articlesByRank[i][j].link.t, 100, MPI_CHAR, i, 0, MPI_COMM_WORLD, &send_request);
-    }
+    numSend[i] = articlesByRank[i].size();
+    MPI_Isend(&numSend[i], 1, MPI_INT, i, 10*(num_procs*i + mpi_rank)+1, MPI_COMM_WORLD, &send_request_num[i]);
   }
 
+  MPI_Request	*send_request_links = new MPI_Request[num_procs];
+
+  for(int i = 0; i < num_procs; i++) {
+    printf("From %d send %d links to %d\n", mpi_rank, numSend[i],  i);
+
+    MPI_Isend(&articlesByRank[i][0], numSend[i], MPI_ArticleMatch, i, 10*(num_procs*i + mpi_rank)+2, MPI_COMM_WORLD, &send_request_links[i]);
+  }
+
+  int *numRecv = new int[num_procs];
+  MPI_Request	*recv_request_num = new MPI_Request[num_procs];
 
   // GET NUM REQUESTS, THEN RECV
   //MPI_Barrier(MPI_COMM_WORLD);
-  int num_msgs = 0;
+  int num_links = 0;
   for(int i = 0; i < num_procs; i++) {
-    int temp = 0;
-    MPI_Irecv(&temp, 1, MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &send_request);
-    MPI_Wait(&send_request, &status);
-    num_msgs += temp;
+    MPI_Irecv(&numRecv[i], 1, MPI_INT, i, 10*(num_procs*mpi_rank + i)+1, MPI_COMM_WORLD, &recv_request_num[i]);
+  }
+  MPI_Waitall(num_procs, recv_request_num, MPI_STATUSES_IGNORE);
+
+  for(int i = 0; i < num_procs; i++) {
+    num_links += numRecv[i];
   }
 
-  std::cout << "RANK " << mpi_rank << " WILL RECEIVE " << num_msgs << " MESSAGES" << std::endl;
+  cout << "RANK " << mpi_rank << " WILL RECEIVE " << num_links << " LINKS" << endl;
 
-  for(int i = 0; i < num_msgs; i++) {
-    // char buffer[1000];
-    // MPI_Irecv(buffer, 100, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recv_request);
-    // printf("RECV: %s\n", buffer);
-    // printf("%s", rbuf);
+  MPI_Request	*recv_request_links = new MPI_Request[num_procs];
+
+  ArticleMatch *recivedArticles = new ArticleMatch[num_links];
+
+  int currentLink = 0;
+  for(int i = 0; i < num_procs; i++) {
+    MPI_Irecv(&recivedArticles[currentLink], numRecv[i], MPI_ArticleMatch, i, 10*(num_procs*mpi_rank + i)+2, MPI_COMM_WORLD, &recv_request_links[i]);
+    currentLink += numRecv[i];
   }
+
+  MPI_Waitall(num_procs, recv_request_links, MPI_STATUSES_IGNORE);
+
+  for(int i = 0; i < num_links; i++) {
+    printf("%d recived source %s, link %s\n", mpi_rank, recivedArticles[i].source.t, recivedArticles[i].link.t);
+    string title = StringAtoString(recivedArticles[i].link);
+    string from = StringAtoString(recivedArticles[i].source);
+    tr1::unordered_map<string,Article*>::iterator find = articleMap.find(title);
+    if (find == articleMap.end()){
+      cout <<"Article "<<title<<" not found"<<endl;
+    }
+    else{
+      find->second->addLinkedTo(from);
+    }
+
+  }
+  MPI_Waitall(num_procs, send_request_num, MPI_STATUSES_IGNORE);
+  MPI_Waitall(num_procs, send_request_links, MPI_STATUSES_IGNORE);
+
 
   MPI_Barrier(MPI_COMM_WORLD);
 
+  delete [] numSend ;
+  delete [] articlesByRank ;
+  delete [] send_request_num ;
+  delete [] send_request_links ;
+  delete [] numRecv ;
+  delete [] recv_request_num ;
+  delete [] recv_request_links ;
   // Exit Program
   MPI_Finalize();
   return EXIT_SUCCESS;
@@ -185,7 +234,6 @@ void *readFiles(void *arg) {
 
   thread_arg_t thread_args = *(thread_arg_t*)arg;
 
-  int rankLowerbound = thread_args.rankLowerbound;
   int rankUpperbound = thread_args.rankUpperbound;
   // for each directory in article/
   int dirIndex = 0;
@@ -198,7 +246,7 @@ void *readFiles(void *arg) {
     if (dirIndex >= rankUpperbound){
       break;
     }
-    std::string dirPath = "article/";
+    string dirPath = "article/";
 
     dirPath.append(getDirectoryName(dirIndex));
     DIR *dir;
@@ -244,15 +292,15 @@ void *readFiles(void *arg) {
       break;
     }
 
-    std::string tmpPath = (*thread_args.filePaths).back();
+    string tmpPath = (*thread_args.filePaths).back();
     (*thread_args.filePaths).pop_back();
 
     pthread_mutex_unlock(&mutexFilePath);
 
-    std::ifstream file(tmpPath.c_str());
+    ifstream file(tmpPath.c_str());
     if(file.is_open()) {
 
-      std::string line;
+      string line;
       // create Article object
       Article current;
       getline(file, line); // discard title
@@ -273,7 +321,7 @@ void *readFiles(void *arg) {
 
       file.close();
     } else {
-      std::cout << "Cannot open file" << std::endl;
+      cout << "Cannot open file" << endl;
     }
   }
   // cout << mpi_rank<< "."<< thread_args.id<<" done" <<endl;

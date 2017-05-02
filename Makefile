@@ -19,7 +19,7 @@ n ?= 3
 all: compile run
 
 main.out: main.cpp article.cpp article.h
-	mpic++ -Wall main.cpp article.cpp -o main.out -lpthread -g -O0 -fno-inline
+	mpic++ -Wall main.cpp article.cpp -o main.out -lpthread -g -O0 -fno-inline -stdlib=libstdc++
 
 compile: main.out
 
@@ -51,6 +51,6 @@ parse: makeDirs.out parse.out
 
 blue:
 	# mpic++ -O5 main.cpp article.cpp -o main.out
-	mpixlcxx -O5 main.cpp article.cpp -o main.out -qflag=w -lpthread
-	mpixlcxx -O5 parseFiles.cpp -o parse.out -qflag=w -lpthread
-	mpixlcxx -O5 makeDirs.cpp -o makeDirs.out -qflag=w -lpthread
+	mpixlcxx -O5 main.cpp article.cpp -o main.out -qflag=w -lpthread -qlanglvl=variadictemplates
+	mpixlcxx -O5 parseFiles.cpp -o parse.out -qflag=w -lpthread -qlanglvl=variadictemplates
+	mpixlcxx -O5 makeDirs.cpp -o makeDirs.out -qflag=w -lpthread -qlanglvl=variadictemplates
