@@ -249,11 +249,16 @@ void *readFiles(void *arg) {
       std::string line;
       // create Article object
       Article current;
+      getline(file, line); // discard title
       current.setTitle(tmpPath.substr(11, tmpPath.length() - 15));
       // current.setTitle(line.substr(7));
 
       while(!file.eof() && getline(file, line)) {
         if (!line.length()) {continue;}
+        size_t linkEnd = line.find("#"); // Find a anchor
+        if (linkEnd != string::npos){
+          line = line.substr(0, linkEnd);
+        }
         current.addLinks(line);
       }
       pthread_mutex_lock(&mutexArticle);
