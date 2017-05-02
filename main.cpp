@@ -55,6 +55,8 @@ int directories_per_thread;
 
 void *readFiles(void *thread_arg);
 
+bool sortOutNodes(Article a1, Article a2);
+
 int main(int argc, char *argv[]) {
   // Initialize Environment
   MPI_Datatype MPI_ArticleMatch; // datatype for sending
@@ -76,7 +78,7 @@ int main(int argc, char *argv[]) {
   // int rankUpperbound = ((rank + 1) * NUM_DIRECTORIES / num_procs);
   directories_per_rank = (NUM_DIRECTORIES / num_procs);
   int rankLowerbound = (mpi_rank * directories_per_rank);
-  cout << mpi_rank << " " << rankLowerbound <<endl;
+  //cout << mpi_rank << " " << rankLowerbound <<endl;
 
   // should divide evenly
 
@@ -126,10 +128,10 @@ int main(int argc, char *argv[]) {
 
   if(mpi_rank == 0) { file_ops = MPI_Wtime(); }
 
-  cout << mpi_rank << ": articles: "<< articles.size() << endl;
+  //cout << mpi_rank << ": articles: "<< articles.size() << endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
-  cout << mpi_rank << " barrier done" << endl;
+  //cout << mpi_rank << " barrier done" << endl;
 
   // COMMUNICATION
   // Each rank iterates through article list
@@ -156,7 +158,7 @@ int main(int argc, char *argv[]) {
 
   for(int i = 0; i < num_procs; i++) {
     for(int j = 0; j < articlesByRank[i].size(); j++) {
-      printf("From R%d article:%s send link:%s to R%d\n", mpi_rank, articlesByRank[i][j].source.t, articlesByRank[i][j].link.t, i);
+      // printf("From R%d article:%s send link:%s to R%d\n", mpi_rank, articlesByRank[i][j].source.t, articlesByRank[i][j].link.t, i);
       MPI_Isend(articlesByRank[i][j].link.t, 100, MPI_CHAR, i, 0, MPI_COMM_WORLD, &send_request);
     }
   }
@@ -172,7 +174,7 @@ int main(int argc, char *argv[]) {
     num_msgs += temp;
   }
 
-  std::cout << "RANK " << mpi_rank << " WILL RECEIVE " << num_msgs << " MESSAGES" << std::endl;
+  // std::cout << "RANK " << mpi_rank << " WILL RECEIVE " << num_msgs << " MESSAGES" << std::endl;
 
   for(int i = 0; i < num_msgs; i++) {
     // char buffer[1000];
@@ -186,6 +188,12 @@ int main(int argc, char *argv[]) {
     end = MPI_Wtime();
     std::cout << "FILE I/O TIME: " << file_ops - start << std::endl;
     std::cout << "RUN TIME: " << end - start << std::endl;
+  }
+
+  // MOST NODES
+  std::sort(articles.begin(), articles.end(), sortOutNodes);
+  for(int i = 0; i < 3 && i < articles.size(); i++) {
+    std::cout << "RANK " << mpi_rank << " " << i << ": " << articles[i].getLinks().size() << std::endl;
   }
 
   // Exit Program
@@ -297,3 +305,5 @@ void *readFiles(void *arg) {
 
   return return_val;
 }
+
+bool sortOutNodes(Article a1, Article a2) { return a1.getLinks().size() > a2.getLinks().size(); }
