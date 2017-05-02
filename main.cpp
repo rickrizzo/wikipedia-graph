@@ -57,6 +57,7 @@ int directories_per_thread;
 void *readFiles(void *thread_arg);
 
 bool sortOutNodes(Article a1, Article a2);
+bool sortInNodes(Article a1, Article a2);
 
 int main(int argc, char *argv[]) {
   // Initialize Environment
@@ -226,17 +227,28 @@ int main(int argc, char *argv[]) {
 
 
   MPI_Barrier(MPI_COMM_WORLD);
+
   if(mpi_rank == 0) {
     end = MPI_Wtime();
     std::cout << "FILE I/O TIME: " << file_ops - start << std::endl;
     std::cout << "RUN TIME: " << end - start << std::endl;
   }
+  MPI_Barrier(MPI_COMM_WORLD);
 
   // MOST NODES
+  std::cout << "OUT NODES" << std::endl;
   std::sort(articles.begin(), articles.end(), sortOutNodes);
   for(int i = 0; i < 3 && i < articles.size(); i++) {
-    std::cout << "\tRANK " << mpi_rank << "-> " << i << ": " << articles[i].getLinks().size() << std::endl;
+    std::cout << "RANK " << mpi_rank << "-> " << i << ": " << articles[i].getLinks().size() << std::endl;
   }
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  std::cout << "IN NODES" << std::endl;
+  std::sort(articles.begin(), articles.end(), sortInNodes);
+  for(int i = 0; i < 3 && i < articles.size(); i++) {
+    std::cout << "RANK " << mpi_rank << "-> " << i << ": " << articles[i].getLinkedTo().size() << std::endl;
+  }
+  MPI_Barrier(MPI_COMM_WORLD);
 
   delete [] numSend ;
   delete [] articlesByRank ;
@@ -355,3 +367,4 @@ void *readFiles(void *arg) {
 }
 
 bool sortOutNodes(Article a1, Article a2) { return a1.getLinks().size() > a2.getLinks().size(); }
+bool sortInNodes(Article a1, Article a2) { return a1.getLinkedTo().size() > a2.getLinkedTo().size(); }
