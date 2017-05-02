@@ -29,14 +29,16 @@ using namespace std;
 
 pthread_mutex_t mutexFilePath = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutexArticle = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutexCurrentDir = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_t threads[MAXTHRDS];
 mylib_barrier_t thread_barrier;
 
 struct thread_arg_t {
-  int threadLowerbound;
-  int threadUpperbound;
+  int rankLowerbound;
+  int rankUpperbound;
   int id;
+  int * currentDir;
 
   std::vector<std::string> *filePaths;
   std::vector<Article> *articles;
@@ -79,16 +81,14 @@ int main(int argc, char *argv[]) {
   pthread_attr_init (&attr);
 
   std::vector<thread_arg_t> thread_args;
-
+  int currentDir = rankLowerbound -1;
   for (int i = 0; i < THREADS_PER_RANK; i++) {
     // divide up directories by thread
     thread_arg_t tmp;
-    tmp.threadLowerbound = rankLowerbound + (directories_per_thread * i);
-    tmp.threadUpperbound = rankLowerbound + (directories_per_thread * (i + 1));
-    if (i == THREADS_PER_RANK - 1){
-        tmp.threadUpperbound = rankLowerbound + directories_per_rank;
-    }
+    tmp.rankLowerbound = rankLowerbound;
+    tmp.rankUpperbound = rankLowerbound + directories_per_rank;
     tmp.id = i; // share this vector across threads
+    tmp.currentDir = &currentDir; // share this vector across threads
     tmp.filePaths = &filePaths; // share this vector across threads
     tmp.articles = &articles; // share across all threads in this rank
     thread_args.push_back(tmp);
@@ -140,12 +140,12 @@ int main(int argc, char *argv[]) {
     int temp = articlesByRank[i].size();
     MPI_Isend(&temp, 1, MPI_UNSIGNED_LONG, i, i, MPI_COMM_WORLD, &send_request);
   }
-  // for(int i = 0; i < num_procs; i++) {
-  //   for(int j = 0; j < articlesByRank[i].size(); j++) {
-  //     printf("From R%d article:%s send link:%s to R%d\n", mpi_rank, articlesByRank[i][j].source.t, articlesByRank[i][j].link.t, i);
-  //     MPI_Isend(articlesByRank[i][j].link.t, 100, MPI_CHAR, i, 0, MPI_COMM_WORLD, &send_request);
-  //   }
-  // }
+  for(int i = 0; i < num_procs; i++) {
+    for(int j = 0; j < articlesByRank[i].size(); j++) {
+      printf("From R%d article:%s send link:%s to R%d\n", mpi_rank, articlesByRank[i][j].source.t, articlesByRank[i][j].link.t, i);
+      MPI_Isend(articlesByRank[i][j].link.t, 100, MPI_CHAR, i, 0, MPI_COMM_WORLD, &send_request);
+    }
+  }
 
 
   // GET NUM REQUESTS, THEN RECV
@@ -178,13 +178,22 @@ void *readFiles(void *arg) {
 
   thread_arg_t thread_args = *(thread_arg_t*)arg;
 
-  int threadLowerbound = thread_args.threadLowerbound;
-  int threadUpperbound = thread_args.threadUpperbound;
+  int rankLowerbound = thread_args.rankLowerbound;
+  int rankUpperbound = thread_args.rankUpperbound;
   // for each directory in article/
-  for (int i = threadLowerbound; i < threadUpperbound; i++) {
+  int dirIndex = 0;
+
+  while (true){
+    pthread_mutex_lock(&mutexCurrentDir);
+    *(thread_args.currentDir) += 1;
+    dirIndex = *(thread_args.currentDir);
+    pthread_mutex_unlock(&mutexCurrentDir);
+    if (dirIndex >= rankUpperbound){
+      break;
+    }
     std::string dirPath = "article/";
 
-    dirPath.append(getDirectoryName(i));
+    dirPath.append(getDirectoryName(dirIndex));
     DIR *dir;
     struct dirent *ent;
     if ((dir = opendir (dirPath.c_str())) != NULL) {
@@ -207,6 +216,7 @@ void *readFiles(void *arg) {
       exit (EXIT_FAILURE);
     }
   }
+
   mylib_barrier(&thread_barrier);
 
   // now that the files are stored in the vector, read them
@@ -216,7 +226,7 @@ void *readFiles(void *arg) {
     cout << mpi_rank<< " fileCount: " << fileCount <<endl;
   }
   pthread_mutex_unlock(&mutexFilePath);
-  cout << mpi_rank<< "."<< thread_args.id<<" start" <<endl;
+  // cout << mpi_rank<< "."<< thread_args.id<<" start" <<endl;
   // while files remain
   while (true) {
     pthread_mutex_lock(&mutexFilePath);
