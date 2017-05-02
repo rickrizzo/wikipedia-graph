@@ -165,17 +165,21 @@ int main(int argc, char *argv[]) {
     pthread_join(threads[i], (void **)&x);
     // delete(x);
   }
-
-  if(mpi_rank == 0) { file_ops = MPI_Wtime(); }
-
   //cout << mpi_rank << ": articles: "<< articles.size() << endl;
 
   for (int i = 0; i < articles.size(); i++){
     // cout << mpi_rank << ": article: "<< articles[i].getTitle() << endl;
     articleMap.insert(make_pair(articles[i].getTitle(),&articles[i]));
   }
+  cout << mpi_rank<< " done reading: " << articles.size() <<endl;
 
   MPI_Barrier(MPI_COMM_WORLD);
+
+  if(mpi_rank == 0) {
+    file_ops = MPI_Wtime();
+    cout << "File ops time = "<<file_ops - start<<endl;
+  }
+
   //cout << mpi_rank << " barrier done" << endl;
 
   // COMMUNICATION

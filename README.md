@@ -66,6 +66,8 @@ mpixlcxx -O5 main.cpp article.cpp -o main.out -qflag=w -lpthread -qlanglvl=varia
 sbatch --partition medium --nodes 256 --time 240 ./running.sh
 ```
 
+note that qlanglvl=variadictemplates is used to access the tr1 namespace for unordered maps.
+
 ## Input & Output
 ### Parsing
 parse.out and makeDirs.out have no arguments.
