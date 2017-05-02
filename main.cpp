@@ -56,9 +56,14 @@ int directories_per_thread;
 
 void *readFiles(void *thread_arg);
 
+bool sortOutNodes(Article a1, Article a2);
+
 int main(int argc, char *argv[]) {
   // Initialize Environment
   MPI_Datatype MPI_ArticleMatch; // datatype for sending
+
+  // Timing Variables
+  double start = 0, file_ops = 0, end = 0;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
@@ -67,12 +72,14 @@ int main(int argc, char *argv[]) {
   MPI_Type_contiguous(200, MPI_CHAR, &MPI_ArticleMatch);
   MPI_Type_commit(&MPI_ArticleMatch);
 
+  if(mpi_rank == 0) { start = MPI_Wtime(); }
+
 
   // indeces of first directory for this rank and first directory for next rank
   // int rankUpperbound = ((rank + 1) * NUM_DIRECTORIES / num_procs);
   directories_per_rank = (NUM_DIRECTORIES / num_procs);
   int rankLowerbound = (mpi_rank * directories_per_rank);
-  cout << mpi_rank << " " << rankLowerbound <<endl;
+  //cout << mpi_rank << " " << rankLowerbound <<endl;
 
   // should divide evenly
 
@@ -121,7 +128,9 @@ int main(int argc, char *argv[]) {
     // delete(x);
   }
 
-  cout << mpi_rank << ": articles: "<< articles.size() << endl;
+  if(mpi_rank == 0) { file_ops = MPI_Wtime(); }
+
+  //cout << mpi_rank << ": articles: "<< articles.size() << endl;
 
   for (int i = 0; i < articles.size(); i++){
     cout << mpi_rank << ": article: "<< articles[i].getTitle() << endl;
@@ -129,7 +138,7 @@ int main(int argc, char *argv[]) {
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
-  cout << mpi_rank << " barrier done" << endl;
+  //cout << mpi_rank << " barrier done" << endl;
 
   // COMMUNICATION
   // Each rank iterates through article list
@@ -217,6 +226,17 @@ int main(int argc, char *argv[]) {
 
 
   MPI_Barrier(MPI_COMM_WORLD);
+  if(mpi_rank == 0) {
+    end = MPI_Wtime();
+    std::cout << "FILE I/O TIME: " << file_ops - start << std::endl;
+    std::cout << "RUN TIME: " << end - start << std::endl;
+  }
+
+  // MOST NODES
+  std::sort(articles.begin(), articles.end(), sortOutNodes);
+  for(int i = 0; i < 3 && i < articles.size(); i++) {
+    std::cout << "\tRANK " << mpi_rank << "-> " << i << ": " << articles[i].getLinks().size() << std::endl;
+  }
 
   delete [] numSend ;
   delete [] articlesByRank ;
@@ -333,3 +353,5 @@ void *readFiles(void *arg) {
 
   return return_val;
 }
+
+bool sortOutNodes(Article a1, Article a2) { return a1.getLinks().size() > a2.getLinks().size(); }
