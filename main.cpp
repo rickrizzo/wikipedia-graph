@@ -59,12 +59,17 @@ int main(int argc, char *argv[]) {
   // Initialize Environment
   MPI_Datatype MPI_ArticleMatch; // datatype for sending
 
+  // Timing Variables
+  double start = 0, file_ops = 0, end = 0;
+
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
   MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
 
   MPI_Type_contiguous(200, MPI_CHAR, &MPI_ArticleMatch);
   MPI_Type_commit(&MPI_ArticleMatch);
+
+  if(mpi_rank == 0) { start = MPI_Wtime(); }
 
 
   // indeces of first directory for this rank and first directory for next rank
@@ -118,6 +123,8 @@ int main(int argc, char *argv[]) {
     pthread_join(threads[i], (void **)&x);
     // delete(x);
   }
+
+  if(mpi_rank == 0) { file_ops = MPI_Wtime(); }
 
   cout << mpi_rank << ": articles: "<< articles.size() << endl;
 
@@ -175,6 +182,11 @@ int main(int argc, char *argv[]) {
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
+  if(mpi_rank == 0) {
+    end = MPI_Wtime();
+    std::cout << "FILE I/O TIME: " << file_ops - start << std::endl;
+    std::cout << "RUN TIME: " << end - start << std::endl;
+  }
 
   // Exit Program
   MPI_Finalize();
