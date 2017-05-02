@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
   // MOST NODES
   std::sort(articles.begin(), articles.end(), sortOutNodes);
   for(int i = 0; i < 3 && i < articles.size(); i++) {
-    std::cout << "RANK " << mpi_rank << " " << i << ": " << articles[i].getLinks().size() << std::endl;
+    std::cout << "\tRANK " << mpi_rank << "-> " << i << ": " << articles[i].getLinks().size() << std::endl;
   }
 
   // Exit Program
