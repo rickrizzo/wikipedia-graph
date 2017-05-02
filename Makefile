@@ -29,7 +29,7 @@ clean:
 	rm -f makeDirs.out
 
 run: compile
-	mpirun -n $(n) ./main.out
+	mpirun -n $(n) ./main.out 8
 
 download:
 	echo "WARNING ABOUT TO DOWNLOAD 13GBs"

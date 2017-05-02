@@ -25,7 +25,6 @@ using namespace tr1;
 #define NUM_DIRECTORIES 1296
 
 // hold each of the thread ids
-#define THREADS_PER_RANK 8
 #define MAXTHRDS 8
 
 pthread_mutex_t mutexFilePath = PTHREAD_MUTEX_INITIALIZER;
@@ -49,7 +48,7 @@ struct thread_arg_t {
 int mpi_rank, num_procs;
 MPI_Request	send_request,recv_request;
 MPI_Status status;
-
+int num_threads = 8;
 // int articles_per_rank;
 int directories_per_rank;
 int directories_per_thread;
@@ -73,6 +72,44 @@ int main(int argc, char *argv[]) {
   MPI_Type_contiguous(200, MPI_CHAR, &MPI_ArticleMatch);
   MPI_Type_commit(&MPI_ArticleMatch);
 
+    // Check arguments
+  if (num_procs < 0 || num_procs > NUM_DIRECTORIES  || NUM_DIRECTORIES%num_procs != 0){
+    if (mpi_rank == 0)
+    {
+      printf("Error! bad number of tasks %d\n", num_procs);
+    }
+    return EXIT_FAILURE;
+  }
+
+  if (argc != 2){
+    if (mpi_rank == 0)
+    {
+      printf( "Error: Program expects 1 argument\n" );
+      printf( "Should be of the form:\n" );
+      printf( "`./a.out <threads>`\n" );
+      printf( "Where threads is a number between 1 and 8\n" );
+    }
+    return EXIT_FAILURE;
+  }
+  else{
+    long ret;
+    ret = strtol(argv[1], NULL, 10);
+    if (ret > MAXTHRDS){
+      if (mpi_rank == 0)
+      {
+        printf( "Error: Program expects 1 argument\n" );
+        printf( "Should be of the form:\n" );
+        printf( "`./a.out <threads>`\n" );
+        printf( "Where threads is a number between 1 and 8\n" );
+      }
+      return EXIT_FAILURE;
+    }
+    else{
+      num_threads = ret;
+    }
+  }
+
+
   if(mpi_rank == 0) { start = MPI_Wtime(); }
 
 
@@ -84,7 +121,7 @@ int main(int argc, char *argv[]) {
 
   // should divide evenly
 
-  directories_per_thread = directories_per_rank / THREADS_PER_RANK;
+  directories_per_thread = directories_per_rank / num_threads;
 
   // store all the files for this rank here
   vector<string> filePaths;
@@ -92,13 +129,13 @@ int main(int argc, char *argv[]) {
   tr1::unordered_map<string, Article*> articleMap;
 
   // Initilize pthread variables
-  mylib_init_barrier(&thread_barrier, THREADS_PER_RANK);
+  mylib_init_barrier(&thread_barrier, num_threads);
   pthread_attr_t attr;
   pthread_attr_init (&attr);
 
   vector<thread_arg_t> thread_args;
   int currentDir = rankLowerbound -1;
-  for (int i = 0; i < THREADS_PER_RANK; i++) {
+  for (int i = 0; i < num_threads; i++) {
     // divide up directories by thread
     thread_arg_t tmp;
     tmp.rankLowerbound = rankLowerbound;
@@ -111,7 +148,7 @@ int main(int argc, char *argv[]) {
   }
 
   // create threads
-  for (int i = 0; i < THREADS_PER_RANK; i++) {
+  for (int i = 0; i < num_threads; i++) {
     int rc = pthread_create(&threads[i], &attr, readFiles, &thread_args[i]);
 
     if (rc != 0) {
@@ -122,7 +159,7 @@ int main(int argc, char *argv[]) {
   }
 
   // join threads
-  for (int i = 0; i < THREADS_PER_RANK; i++)
+  for (int i = 0; i < num_threads; i++)
   {
     unsigned int *x;
     pthread_join(threads[i], (void **)&x);
@@ -134,7 +171,7 @@ int main(int argc, char *argv[]) {
   //cout << mpi_rank << ": articles: "<< articles.size() << endl;
 
   for (int i = 0; i < articles.size(); i++){
-    cout << mpi_rank << ": article: "<< articles[i].getTitle() << endl;
+    // cout << mpi_rank << ": article: "<< articles[i].getTitle() << endl;
     articleMap.insert(make_pair(articles[i].getTitle(),&articles[i]));
   }
 
@@ -149,10 +186,12 @@ int main(int argc, char *argv[]) {
   // Repeat until no more messages to send for each rank
   // Barrier and close
   vector<ArticleMatch> *articlesByRank = new vector<ArticleMatch>[num_procs];
+  unsigned long out_links = 0, in_links = 0;
 
   for(int i = 0; i < articles.size(); i++) {
     for(int j = 0; j < articles[i].getLinks().size(); j++) {
       int sendRank = getArticleRank(articles[i].getLinks()[j].t, NUM_DIRECTORIES, num_procs);
+      out_links +=1;
       ArticleMatch match;
       match.source = articles[i].getTitleA();
       match.link = articles[i].getLinks()[j];
@@ -175,7 +214,7 @@ int main(int argc, char *argv[]) {
   MPI_Request	*send_request_links = new MPI_Request[num_procs];
 
   for(int i = 0; i < num_procs; i++) {
-    printf("From %d send %d links to %d\n", mpi_rank, numSend[i],  i);
+    // printf("From %d send %d links to %d\n", mpi_rank, numSend[i],  i);
 
     MPI_Isend(&articlesByRank[i][0], numSend[i], MPI_ArticleMatch, i, 10*(num_procs*i + mpi_rank)+2, MPI_COMM_WORLD, &send_request_links[i]);
   }
@@ -185,21 +224,20 @@ int main(int argc, char *argv[]) {
 
   // GET NUM REQUESTS, THEN RECV
   //MPI_Barrier(MPI_COMM_WORLD);
-  int num_links = 0;
   for(int i = 0; i < num_procs; i++) {
     MPI_Irecv(&numRecv[i], 1, MPI_INT, i, 10*(num_procs*mpi_rank + i)+1, MPI_COMM_WORLD, &recv_request_num[i]);
   }
   MPI_Waitall(num_procs, recv_request_num, MPI_STATUSES_IGNORE);
 
   for(int i = 0; i < num_procs; i++) {
-    num_links += numRecv[i];
+    in_links += numRecv[i];
   }
 
-  cout << "RANK " << mpi_rank << " WILL RECEIVE " << num_links << " LINKS" << endl;
+  // cout << "RANK " << mpi_rank << " WILL RECEIVE " << in_links << " LINKS" << endl;
 
   MPI_Request	*recv_request_links = new MPI_Request[num_procs];
 
-  ArticleMatch *recivedArticles = new ArticleMatch[num_links];
+  ArticleMatch *recivedArticles = new ArticleMatch[in_links];
 
   int currentLink = 0;
   for(int i = 0; i < num_procs; i++) {
@@ -209,13 +247,13 @@ int main(int argc, char *argv[]) {
 
   MPI_Waitall(num_procs, recv_request_links, MPI_STATUSES_IGNORE);
 
-  for(int i = 0; i < num_links; i++) {
-    printf("%d recived source %s, link %s\n", mpi_rank, recivedArticles[i].source.t, recivedArticles[i].link.t);
+  for(int i = 0; i < in_links; i++) {
+    // printf("%d recived source %s, link %s\n", mpi_rank, recivedArticles[i].source.t, recivedArticles[i].link.t);
     string title = StringAtoString(recivedArticles[i].link);
     string from = StringAtoString(recivedArticles[i].source);
     tr1::unordered_map<string,Article*>::iterator find = articleMap.find(title);
     if (find == articleMap.end()){
-      cout <<"Article "<<title<<" not found"<<endl;
+      cout <<"Article not found: "<<title<<endl;
     }
     else{
       find->second->addLinkedTo(from);
@@ -228,27 +266,137 @@ int main(int argc, char *argv[]) {
 
   MPI_Barrier(MPI_COMM_WORLD);
 
+  unsigned long total_articles = 0;
+  unsigned long rank_articles = articles.size();
+  unsigned long max_articles = 0;
+  MPI_Allreduce(
+      &rank_articles,
+      &total_articles,
+      1,
+      MPI_UNSIGNED_LONG,
+      MPI_SUM,
+      MPI_COMM_WORLD);
+
+  MPI_Allreduce(
+      &rank_articles,
+      &max_articles,
+      1,
+      MPI_UNSIGNED_LONG,
+      MPI_MAX,
+      MPI_COMM_WORLD);
+
+  unsigned long total_out_links = 0;
+  unsigned long max_out_links = 0;
+
+  MPI_Allreduce(
+      &out_links,
+      &total_out_links,
+      1,
+      MPI_UNSIGNED_LONG,
+      MPI_SUM,
+      MPI_COMM_WORLD);
+
+  MPI_Allreduce(
+      &out_links,
+      &max_out_links,
+      1,
+      MPI_UNSIGNED_LONG,
+      MPI_MAX,
+      MPI_COMM_WORLD);
+
+  unsigned long total_in_links = 0;
+  unsigned long max_in_links = 0;
+
+  MPI_Allreduce(
+      &in_links,
+      &total_in_links,
+      1,
+      MPI_UNSIGNED_LONG,
+      MPI_SUM,
+      MPI_COMM_WORLD);
+
+  MPI_Allreduce(
+      &in_links,
+      &max_in_links,
+      1,
+      MPI_UNSIGNED_LONG,
+      MPI_MAX,
+      MPI_COMM_WORLD);
+
   if(mpi_rank == 0) {
-    end = MPI_Wtime();
-    std::cout << "FILE I/O TIME: " << file_ops - start << std::endl;
-    std::cout << "RUN TIME: " << end - start << std::endl;
-  }
-  MPI_Barrier(MPI_COMM_WORLD);
+    // Write the stats to files
+    char filename[100];
 
-  // MOST NODES
-  std::cout << "OUT NODES" << std::endl;
-  std::sort(articles.begin(), articles.end(), sortOutNodes);
-  for(int i = 0; i < 3 && i < articles.size(); i++) {
-    std::cout << "RANK " << mpi_rank << "-> " << i << ": " << articles[i].getLinks().size() << std::endl;
-  }
-  MPI_Barrier(MPI_COMM_WORLD);
+    char dirname[100];
+    sprintf(dirname,"mkdir -p stats");
+    system(dirname);
+    sprintf(dirname,"mkdir -p topin");
+    system(dirname);
+    sprintf(dirname,"mkdir -p topout");
+    system(dirname);
 
-  std::cout << "IN NODES" << std::endl;
-  std::sort(articles.begin(), articles.end(), sortInNodes);
-  for(int i = 0; i < 3 && i < articles.size(); i++) {
-    std::cout << "RANK " << mpi_rank << "-> " << i << ": " << articles[i].getLinkedTo().size() << std::endl;
+    sprintf(filename,"stats/stats.ranks%d.threads%d.txt",num_procs,num_threads);
+    FILE * fp = fopen(filename, "w");
+
+    // fprintf(fp, "ranks, threads, file i/o time, run time, total articles, max articles, total out links, max out links, total in links, max in links\n");
+    fprintf(fp, "%d, %d, %f, %f, %lu, %lu, %lu, %lu, %lu, %lu\n",
+            num_procs,
+            num_threads,
+            file_ops - start,
+            end - start,
+            total_articles,max_articles,
+            total_out_links,max_out_links,
+            total_in_links,max_in_links);
+
+
+    fclose(fp);
   }
-  MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // Write the stats to files
+    char filename[100];
+
+    sprintf(filename,"topout/topout.ranks%d.threads%d.%d.txt",num_procs,num_threads,mpi_rank);
+    FILE * fp = fopen(filename, "w");
+
+    // fprintf(fp, "ranks, threads, currentRank, article, outnodes, innodes\n");
+
+    // MOST NODES
+    // cout << "OUT NODES" << endl;
+    sort(articles.begin(), articles.end(), sortOutNodes);
+    for(int i = 0; i < 3 && i < articles.size(); i++) {
+      // cout << "RANK " << mpi_rank << "-> " << i << ": " << articles[i].getLinks().size() << endl;
+      fprintf(fp, "%d, %d, %d, %s, %lu, %lu\n",
+              num_procs,
+              num_threads,
+              mpi_rank,
+              articles[i].getTitle().c_str(),
+              articles[i].getLinks().size(),
+              articles[i].getLinkedTo().size());
+
+    }
+    fclose(fp);
+
+    sprintf(filename,"topin/topin.ranks%d.threads%d.%d.txt",num_procs,num_threads,mpi_rank);
+    fp = fopen(filename, "w");
+
+    // fprintf(fp, "ranks, threads, currentRank, article, outnodes, innodes\n");
+
+    // MOST NODES
+    // cout << "IN NODES" << endl;
+    sort(articles.begin(), articles.end(), sortInNodes);
+    for(int i = 0; i < 3 && i < articles.size(); i++) {
+      // cout << "RANK " << mpi_rank << "-> " << i << ": " << articles[i].getLinkedTo().size() << endl;
+      fprintf(fp, "%d, %d, %d, %s, %lu, %lu\n",
+              num_procs,
+              num_threads,
+              mpi_rank,
+              articles[i].getTitle().c_str(),
+              articles[i].getLinks().size(),
+              articles[i].getLinkedTo().size());
+
+    }
+    fclose(fp);
 
   delete [] numSend ;
   delete [] articlesByRank ;
