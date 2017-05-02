@@ -45,6 +45,7 @@ struct thread_arg_t {
 // MPI Variables
 int mpi_rank, num_procs;
 MPI_Request	send_request,recv_request;
+MPI_Status status;
 
 // int articles_per_rank;
 int directories_per_rank;
@@ -128,7 +129,6 @@ int main(int argc, char *argv[]) {
 
   for(int i = 0; i < articles.size(); i++) {
     for(int j = 0; j < articles[i].getLinks().size(); j++) {
-
       int sendRank = getArticleRank(articles[i].getLinks()[j].t, NUM_DIRECTORIES, num_procs);
       ArticleMatch match;
       match.source = articles[i].getTitleA();
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
   }
   for(int i = 0; i < num_procs; i++) {
     int temp = articlesByRank[i].size();
-    MPI_Isend(&temp, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD, &send_request);
+    MPI_Isend(&temp, 1, MPI_UNSIGNED_LONG, i, i, MPI_COMM_WORLD, &send_request);
   }
   // for(int i = 0; i < num_procs; i++) {
   //   for(int j = 0; j < articlesByRank[i].size(); j++) {
@@ -152,8 +152,9 @@ int main(int argc, char *argv[]) {
   //MPI_Barrier(MPI_COMM_WORLD);
   int num_msgs = 0;
   for(int i = 0; i < num_procs; i++) {
-    int temp;
-    MPI_Irecv(&temp, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recv_request);
+    int temp = 0;
+    MPI_Irecv(&temp, 1, MPI_INT, i, i, MPI_COMM_WORLD, &recv_request);
+    // MPI_Wait(&recv_request, &status);
     num_msgs += temp;
   }
 
